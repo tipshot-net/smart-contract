@@ -1,18 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-// @title A smart Contract managing bet prediction sales
+import "hardhat/console.sol";
 
-contract PredictMarket {
-    address payable public owner;
-    mapping(uint32 =>  PredictionData) public Predictions;
-    
+// @title PredictSea {Blockchain powered sport prediction marketplace}
+
+contract Main {
+    address payable public owner;   //The contract deployer and owner
+
+   /**
+   maps unique id of prediction in the centralized server
+   to each contract struct record.
+    */
+    mapping(uint256 =>  PredictionData) public Predictions; 
+
     mapping(address => uint256) public Balances; 
 
+  /** users can have thier accounts verified by 
+  purchasing a unique username mapped to thier address */
     mapping(address => bytes32) public UsernameService;
+
     mapping(address => Profile) public SellerProfile;
+
+    /** contract can be locked in case of emergencies */
     bool public locked = false;
+
+
     uint256 private lastLockedDate;
+
+    /** nominated address can claim ownership of contract 
+    and automatically become owner */
+    address payable private nominatedOwner;
 
     enum Status {
         Pending,
@@ -23,37 +41,36 @@ contract PredictMarket {
     }
 
     struct PredictionData {
-        uint32 UID;
+        uint256 UID; // reference to database prediction record
         address seller;
-        uint64 startTime;
-        uint64 endTime;
-        uint64 odd;
-        uint64 price;
+        uint256 startTime; //start time of first predicted event
+        uint256 endTime; //start time of last predicted event
+        uint16 odd;
+        uint256 price;
         mapping(address => bool) buyers;
-        address[5] positiveValidators;
-        address[5] negativeValidators;
-        uint256 buyCount;
+        address[5] positiveValidators; //miners that upvoted 
+        address[5] negativeValidators; //miners that downvoted
+        uint64 buyCount; // total count of purchases
         Status status;
     }
 
     struct Profile {
-        uint32 rating;
+        uint8 rating;
         uint256 wonCount;
         uint256 lostCount;
         uint256 totalPredictions;
-        uint64 joinedDate;
+        uint256 joinedDate;
         bytes32 bannerImage;
         bytes32 profileImage;
     }
 
-    uint128 public miningFee;
-    uint128 public sellerStakingFee;
-    uint128 public minerStakingFee;
-    uint128 public miningAllowance;
-    uint32 public minerPercentage;
-    uint32 public sellerPercentage;
-    uint32 public minimumOdd;
-    uint32 public minimumPrice;
+    uint256 public miningFee; // paid by seller -> to be shared by validators
+    uint256 public sellerStakingFee; // paid by seller, staked per prediction
+    uint256 public minerStakingFee; // paid by miner, staked per validation
+    uint32 public minerPercentage; // % commission for miner, In event of a prediction won
+    uint32 public sellerPercentage; // % sellers cut, In event of prediction won
+    uint32 public minimumOdd; 
+    uint256 public minimumPrice;
 
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
@@ -61,7 +78,18 @@ contract PredictMarket {
 
     /**********************************/
 
-    event PredictionCreated ();
+    event PredictionCreated(
+      address sender, 
+      uint256 UID, 
+      uint256 startTime, 
+      uint256 endTime,
+      uint16 odd,
+      uint256 price
+      );
+    event DepositCreated(address sender, uint256 value);
+    event IsLocked(bool lock_status);
+    event NewOwnerNominated(address nominee);
+    event OwnershipTransferred(address newOwner);
     /*╔═════════════════════════════╗
       ║             END             ║
       ║            EVENTS           ║
@@ -77,12 +105,13 @@ contract PredictMarket {
     }
 
     modifier isOpen(){
-      require(!locked, "Contract is in locked state");
+      require(!locked, "Contract in locked state");
 
       _;
     }
 
-    modifier uniqueId(uint32 UID){
+
+    modifier uniqueId(uint256 UID){
       require(Predictions[UID].UID == 0 , "UID already exists");
       _;
     }
@@ -103,21 +132,21 @@ contract PredictMarket {
     }
 
     modifier predictionMeetsMinimumRequirements(
-      uint32 _starttime, 
-      uint32 _endtime, 
-      uint32 _odd, 
-      uint32 _price
+      uint256 _startTime, 
+      uint256 _endTime, 
+      uint16 _odd, 
+      uint256 _price
       ){ 
         
         require(_sellerDoesMeetMinimumRequirements(
-          _starttime, _endtime, _odd, _price),
+          _startTime, _endTime, _odd, _price),
           "Doesn't meet min requirements"
           );
 
         _;
        
     }
-
+  
     modifier hasMinimumBalance(uint256 _amount){
       require(Balances[msg.sender] >= _amount, "Not enough balance");
 
@@ -133,31 +162,29 @@ contract PredictMarket {
 
     // constructor
     constructor(
-        uint128 _miningFee,
-        uint128 _sellerStakingFee,
-        uint128 _minerStakingFee,
-        uint128 _miningAllowance,
+        uint256 _miningFee,
+        uint256 _sellerStakingFee,
+        uint256 _minerStakingFee,
         uint32 _minerPercentage,
         uint32 _sellerPercentage,
-        uint32 _minimumOdd,
-        uint32 _minimumPrice
+        uint16 _minimumOdd,
+        uint256 _minimumPrice
     ) {
         owner = payable(msg.sender);
         miningFee = _miningFee;
         sellerStakingFee = _sellerStakingFee;
         minerStakingFee = _minerStakingFee;
-        miningAllowance = _miningAllowance;
-        minerPercentage = _minerPercentage;
+        minerPercentage =  _minerPercentage;
         sellerPercentage = _sellerPercentage;
         minimumOdd = _minimumOdd;
         minimumPrice = _minimumPrice;
     }
-
+    /** Does new prediction data satisfy all minimum requirements */
     function _sellerDoesMeetMinimumRequirements(
-      uint32 _starttime, 
-      uint32 _endtime, 
-      uint32 _odd, 
-      uint32 _price
+      uint256 _starttime, 
+      uint256 _endtime, 
+      uint16 _odd, 
+      uint256 _price
       ) internal view returns(bool) {
 
       if(_starttime  < block.timestamp || 
@@ -172,27 +199,52 @@ contract PredictMarket {
         return false;
       }
 
-
       return true;
     }
 
+    function _setupPrediction(
+      uint256 _UID, 
+      uint256 _startTime, 
+      uint256 _endTime, 
+      uint16 _odd, 
+      uint256 _price
+      ) internal uniqueId(_UID) predictionMeetsMinimumRequirements(
+      _startTime, 
+      _endTime, 
+      _odd, 
+     _price
+      )   {
+       PredictionData storage _prediction = Predictions[_UID];
+       _prediction.UID = _UID;
+       _prediction.seller = msg.sender;
+       _prediction.startTime = _startTime;
+       _prediction.endTime = _endTime;
+       _prediction.odd = _odd;
+       _prediction.price = _price;
 
-    function _setupPrediction() internal  {
+      }
 
-
-
-      
-    }
-
-    function createPredictionWithWallet() external {
+    function createPredictionWithWallet(
+      uint256 _UID, 
+      uint256 _startTime, 
+      uint256 _endTime, 
+      uint16 _odd, 
+      uint256 _price
+      ) external {
       uint256 total = miningFee + sellerStakingFee;
       Balances[msg.sender] -= total;
 
-      _setupPrediction();
-      emit PredictionCreated();
+      _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+      emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
 
-    function createPrediction() external payable {
+    function createPrediction(
+      uint256 _UID, 
+      uint256 _startTime, 
+      uint256 _endTime, 
+      uint16 _odd, 
+      uint256 _price
+      ) external payable {
       uint256 total = miningFee + sellerStakingFee;
       require(msg.value >= total, "Not enough ether");
       uint256 bal = msg.value - total;
@@ -200,22 +252,39 @@ contract PredictMarket {
         Balances[msg.sender] += bal;
       }
 
-      _setupPrediction();
-      emit PredictionCreated();
+       _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+      emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
+    }
+
+    receive() external payable {
+      Balances[msg.sender] += msg.value;
+      emit DepositCreated(msg.sender, msg.value);
     }
 
     function lock() external onlyOwner {
       locked = true;
       lastLockedDate = block.timestamp;
+      emit IsLocked(locked);
     } 
 
     function unlock() external {
       require(locked && (msg.sender == owner || (block.timestamp >  lastLockedDate + 604800)),
       "Not owner!");
       locked = false;
+      emit IsLocked(locked);
     }
 
-    
+    function nominateNewOwner(address _address) external onlyOwner notZeroAddress(_address) {
+      require(_address != owner, "Owner address can't be nominated");
+      nominatedOwner = payable(_address);
+      emit NewOwnerNominated(nominatedOwner);
+    }
 
+    function transferOwnership() external {
+      require(nominatedOwner != address(0), "Nominated owner not set");
+      require(msg.sender == nominatedOwner, "Not a nominated owner");
+      owner = nominatedOwner;
+      emit OwnershipTransferred(owner);
+    }
 
 }
