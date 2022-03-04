@@ -2,6 +2,8 @@
 pragma solidity ^0.8;
 
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // @title PredictSea {Blockchain powered sport prediction marketplace}
 
@@ -14,7 +16,15 @@ contract Main {
     */
     mapping(uint256 =>  PredictionData) public Predictions; 
 
-    mapping(address => uint256) public Balances; 
+    mapping(address => uint256) public Balances;
+
+    address public constant NFT_ADDRESS = address(0); //to be changed
+
+  /** maps validator address & NFT tokenid to vote */
+    mapping(address => mapping(uint256 => Vote)) public nftValidatorVote;
+
+    //maps NFT tokenid to address of owner;
+    mapping(uint256 => address) public nftOwner;
 
   /** users can have thier accounts verified by 
   purchasing a unique username mapped to thier address */
@@ -34,10 +44,20 @@ contract Main {
 
     enum Status {
         Pending,
-        Accepted,
-        Rejected,
+        Complete,
         Won,
         Lost
+    }
+
+    enum ValidationStatus {
+      Assigned,
+      Positive,
+      Negative
+    }
+
+    struct Vote {
+      uint256 UID;
+      ValidationStatus passed;
     }
 
     struct PredictionData {
@@ -48,8 +68,9 @@ contract Main {
         uint16 odd;
         uint256 price;
         mapping(address => bool) buyers;
-        address[5] positiveValidators; //miners that upvoted 
-        address[5] negativeValidators; //miners that downvoted
+        address[] validators; //miners that upvoted 
+        uint8 positiveVoteCount;
+        uint8 negativeVoteCount;
         uint64 buyCount; // total count of purchases
         Status status;
     }
@@ -90,6 +111,11 @@ contract Main {
     event IsLocked(bool lock_status);
     event NewOwnerNominated(address nominee);
     event OwnershipTransferred(address newOwner);
+
+    /**Validator opening events (Arch 2) *temp */
+
+    event ValidationRequested();
+    event VoteSubmitted();
     /*╔═════════════════════════════╗
       ║             END             ║
       ║            EVENTS           ║
@@ -121,13 +147,13 @@ contract Main {
         _;
     }
 
-    modifier onlySeller(uint32 _predictionId){
-      require(msg.sender == Predictions[_predictionId].seller, "Only prediction seller");
+    modifier onlySeller(uint256 _UID){
+      require(msg.sender == Predictions[_UID].seller, "Only prediction seller");
       _;
     }
 
-    modifier notSeller(uint32 _predictionId){
-      require(msg.sender != Predictions[_predictionId].seller, "Seller Unauthorized!");
+    modifier notSeller(uint256 _UID){
+      require(msg.sender != Predictions[_UID].seller, "Seller Unauthorized!");
       _;
     }
 
@@ -150,6 +176,30 @@ contract Main {
     modifier hasMinimumBalance(uint256 _amount){
       require(Balances[msg.sender] >= _amount, "Not enough balance");
 
+      _;
+    }
+
+
+
+    /**Validator opening modifier (Arch 2) *temp */
+
+    modifier predictionEventNotStarted(uint256 _UID){
+     require(Predictions[_UID].startTime > block.timestamp, "Event already started");
+      _;
+    }
+
+    modifier validatorCountIncomplete(uint256 _UID){
+      require(Predictions[_UID].validators.length < 5, "Required validator limit reached");
+      _;
+    }
+
+    modifier validatorCountComplete(uint256 _UID){
+      require(Predictions[_UID].validators.length == 5, "Required validator limit reached");
+      _;
+    }
+
+    modifier newValidationRequest(address requester, uint256 _tokenId){
+      require(nftValidatorVote[requester][_tokenId].UID == 0, "Invalid validation request");
       _;
     }
 
@@ -230,8 +280,9 @@ contract Main {
       uint256 _endTime, 
       uint16 _odd, 
       uint256 _price
-      ) external {
+      )  external  {
       uint256 total = miningFee + sellerStakingFee;
+      require(Balances[msg.sender]>= total, "Not enough balance");
       Balances[msg.sender] -= total;
 
       _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
@@ -255,6 +306,100 @@ contract Main {
        _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
       emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
+
+
+
+
+     /**Validator opening methods (Arch 2) (to be moved) */
+
+    /*╔══════════════════════════════╗
+      ║  TRANSFER NFTS TO CONTRACT   ║
+      ╚══════════════════════════════╝*/
+    function _transferNftToAuctionContract(uint256 _tokenId) internal {
+      
+        if (IERC721(NFT_ADDRESS).ownerOf(_tokenId) == msg.sender) {
+            IERC721(NFT_ADDRESS).transferFrom(
+                msg.sender,
+                address(this),
+                _tokenId
+            );
+            require(
+                IERC721(NFT_ADDRESS).ownerOf(_tokenId) == address(this),
+                "nft transfer failed"
+            );
+        } else {
+            require(
+                IERC721(NFT_ADDRESS).ownerOf(_tokenId) == address(this),
+                "Seller doesn't own NFT"
+            );
+        } 
+        nftOwner[_tokenId] = msg.sender;   
+    }
+
+    function _setUpValidationRequest(uint256 _tokenId, uint256 _UID) internal 
+    validatorCountIncomplete(_UID)
+    predictionEventNotStarted(_UID)
+    newValidationRequest(msg.sender, _tokenId)
+    {
+      Vote storage _vote = nftValidatorVote[msg.sender][_tokenId];
+      _vote.UID = _UID;
+      Predictions[_UID].validators.push(msg.sender);
+      if(Predictions[_UID].validators.length == 5){
+        Predictions[_UID].status = Status.Complete;
+      }
+    }
+
+    function requestValidationWithWallet(uint256 _tokenId, uint256 _UID) external 
+    
+    {
+      require(Balances[msg.sender] >= minerStakingFee, "Not enough balance");
+      Balances[msg.sender] -= minerStakingFee;
+      _transferNftToAuctionContract(_tokenId);
+      _setUpValidationRequest(_tokenId, _UID);
+      emit ValidationRequested(); 
+    }
+
+    function requestValidation(uint256 _tokenId, uint256 _UID)  external payable 
+    {
+      require(msg.value >= minerStakingFee, "Not enough balance");
+      _transferNftToAuctionContract(_tokenId);
+      _setUpValidationRequest(_tokenId, _UID);
+      emit ValidationRequested(); 
+    }
+
+    function _setUpVote(uint256 _tokenId) internal view returns(Vote storage) {
+      Vote storage _prediction = nftValidatorVote[msg.sender][_tokenId];
+      require( _prediction.UID != 0, "Prediction not assigned");
+      require(nftOwner[_tokenId] == msg.sender, "NFT not found");
+      require(Predictions[_prediction.UID].startTime > block.timestamp, "Event already started");
+      return _prediction;
+     
+    }
+
+    function submitVote(uint256 _tokenId, uint8 _vote) external  
+    {
+      require(_vote == 1 || _vote == 2, "Invalid validation option");
+
+      Vote storage _prediction = _setUpVote(_tokenId);
+       if(_vote == 1){
+        _prediction.passed = ValidationStatus.Positive;
+        Predictions[_prediction.UID].positiveVoteCount += 1;
+      }else{
+        _prediction.passed = ValidationStatus.Negative;
+        Predictions[_prediction.UID].negativeVoteCount += 1;
+      }
+      
+      uint256 minerBonus = miningFee / 5;
+      Balances[msg.sender] += minerBonus;
+
+      emit VoteSubmitted();
+
+    }
+
+
+
+
+  /** GENERAL ACCESS FUNCTIONS (to be moved) */
 
     receive() external payable {
       Balances[msg.sender] += msg.value;

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
     "abort-controller": "^3.0.0",
     "abstract-leveldown": "^6.3.0",
     "adm-zip": "^0.4.16",
