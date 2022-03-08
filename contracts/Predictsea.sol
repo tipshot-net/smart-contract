@@ -48,12 +48,15 @@ contract Main {
         Pending,
         Complete,
         Won,
-        Lost
+        Lost,
+        Inconclusive
     }
 
     enum State {
       Inactive,
-      Active
+      Denied,
+      Active,
+      Concluded
     }
 
     enum ValidationStatus {
@@ -66,6 +69,8 @@ contract Main {
     struct Vote {
       ValidationStatus opening;
       ValidationStatus closing;
+      bool stakingFeeRefunded;
+      bool correctValidation;
     }
 
     struct PredictionData {
@@ -75,8 +80,9 @@ contract Main {
         uint256 endTime; //start time of last predicted event
         uint16 odd;
         uint256 price;
-        mapping(address => bool) buyers; // to change to mapping of addr to struct
-        mapping(uint256 => Vote) validators; //miners  
+        address[] buyersList;
+        mapping(address => bool) buyers; 
+        mapping(uint256 => Vote) validators; //maps miners tokenId to vote data 
         uint8 validatorCount;
         uint8 positiveOpeningVoteCount;
         uint8 negativeOpeningVoteCount;
@@ -86,7 +92,8 @@ contract Main {
         Status status;
         State state;
         uint256 totalEarned;
-
+        bool sellerStakingFeeRefunded;
+        bool withdrawnEarnings;
     }
 
     struct ValidationData {
@@ -136,6 +143,7 @@ contract Main {
     event ValidationRequested();
     event VoteSubmitted();
     event PredictionPurchased(bytes32 email);
+    event ClosingVoteSubmitted();
     /*╔═════════════════════════════╗
       ║             END             ║
       ║            EVENTS           ║
@@ -426,6 +434,9 @@ contract Main {
         Predictions[_UID].state = State.Active;
         UserProfile[Predictions[_UID].seller].totalPredictions += 1;
       }
+      if(Predictions[_UID].negativeOpeningVoteCount >= 4){
+        Predictions[_UID].state = State.Denied;
+      }
       
       uint256 minerBonus = miningFee / 5; 
       Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
@@ -440,6 +451,7 @@ contract Main {
     predictionEventNotStarted(_UID)
     predictionActive(_UID){
       Predictions[_UID].buyers[msg.sender] = true;
+      Predictions[_UID].buyersList.push(msg.sender);
       Predictions[_UID].buyCount += 1;
       Predictions[_UID].totalEarned += Predictions[_UID].price;
     }
@@ -490,22 +502,10 @@ contract Main {
         _vote.closing = ValidationStatus.Negative;
         Predictions[_UID].negativeOpeningVoteCount += 1;
       }
-      address _nftRecipient = TokenOwner[_tokenId];
-
-      IERC721(NFT_CONTRACT_ADDRESS).transferFrom(
-            address(this),
-            _nftRecipient,
-            _tokenId
-        );
+      emit ClosingVoteSubmitted();
 
     }
 
-    function removeData(ValidationData[] memory _validations, uint256 index) public {
-        // Move the last element into the place to delete
-       
-        // Remove the last element
-        _validations.pop();
-    }
 
     function _getNftIndex(ValidationData[] memory _validations, uint256 _tokenId) internal pure returns(bool, uint256) {
       bool found;
@@ -528,8 +528,11 @@ contract Main {
       (bool found, uint256 position) = _getNftIndex(_validations, _tokenId);
       require(found, "NFT not found!");
       uint256 _UID = _validations[position].UID;
-      uint256 _superCoolDownTime = Predictions[_UID].endTime + 86400;
-      require(block.timestamp > _superCoolDownTime, "Cannot withdraw NFT now");
+      uint256 _superCoolDownTime = Predictions[_UID].endTime + 43200;
+      require(Predictions[_UID].state == State.Concluded ||
+       block.timestamp > _superCoolDownTime,
+       "Cannot withdraw NFT now");
+        _settleValidator(_UID, _tokenId);
       address _nftRecipient = TokenOwner[_tokenId];
       IERC721(NFT_CONTRACT_ADDRESS).transferFrom(
             address(this),
@@ -540,10 +543,72 @@ contract Main {
                 IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender,
                 "nft transfer failed"
             );
+       
       
     }
 
+    function _settleValidator(uint256 _UID, uint256 _tokenId) internal {
+      require(TokenOwner[_tokenId] == msg.sender, "Not token owner");
+      Vote memory _vote = Predictions[_UID].validators[_tokenId];
+      require(_vote.opening == ValidationStatus.Positive ||
+      _vote.opening == ValidationStatus.Negative, "Didn't vote on opening");
+      Status _status = Predictions[_UID].status;
+      if(_status == Status.Won){
+        
+      }
+      
+      
+    }
 
+    function _settleSeller(uint256 _UID) internal {
+      PredictionData storage _prediction = Predictions[_UID];
+      require(!_prediction.withdrawnEarnings, "Earnings already withdrawn");
+      if(_prediction.status == Status.Won){
+        _refundSellerStakingFee(_UID);
+        uint256 _sellerPercentageAmount = _prediction.totalEarned * (sellerPercentage / 100);
+        Balances[_prediction.seller] += _sellerPercentageAmount;
+      }else{
+        for (uint256 index = 0; index < _prediction.buyersList.length; index++) {
+          Balances[_prediction.buyersList[index]] += _prediction.price;
+        }
+      }
+
+      _prediction.withdrawnEarnings = true;
+    }
+
+    function _refundSellerStakingFee(uint _UID) internal {
+      address seller = Predictions[_UID].seller;
+      require(Predictions[_UID].state != State.Denied, "Refund request denied");
+      require(!Predictions[_UID].sellerStakingFeeRefunded, "Staking fee already refunded");
+      Predictions[_UID].sellerStakingFeeRefunded = true;
+      Balances[seller] += sellerStakingFee;
+    }
+
+  
+
+    function _setPredictionOutcome(uint256 _UID) internal {
+      PredictionData storage _prediction = Predictions[_UID];
+      if(_prediction.positiveClosingVoteCount > 
+      _prediction.negativeClosingVoteCount){
+        _prediction.status = Status.Won;
+      }else if(_prediction.positiveClosingVoteCount < 
+      _prediction.negativeClosingVoteCount){
+        _prediction.status = Status.Lost;
+      }else{
+        _prediction.status = Status.Inconclusive;
+      }
+    }
+
+   function _setUpSellerClosing(uint256 _UID) internal {
+     PredictionData storage _prediction = Predictions[_UID];
+     require(_prediction.seller == msg.sender, "Not seller");
+     require(block.timestamp > _prediction.endTime + 21600 &&
+      block.timestamp < _prediction.endTime + 43200, "Event not cooled down");
+      require(_prediction.state == State.Active, "Event no longer active");
+      _prediction.state = State.Concluded;
+      _setPredictionOutcome(_UID);
+      _settleSeller(_UID);
+   }
 
 
   /** GENERAL ACCESS FUNCTIONS (to be moved) */
