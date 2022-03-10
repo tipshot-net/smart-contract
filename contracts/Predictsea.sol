@@ -14,7 +14,7 @@ contract Main {
    maps unique id of prediction in the centralized server
    to each contract struct record.
     */
-    mapping(uint256 =>  PredictionData) public Predictions; 
+    mapping(uint256 =>  PredictionData) internal Predictions; 
 
     mapping(address => uint256) public Balances;
 
@@ -54,6 +54,7 @@ contract Main {
 
     enum State {
       Inactive,
+      Withdrawn,
       Denied,
       Active,
       Concluded
@@ -106,9 +107,6 @@ contract Main {
         uint256 wonCount;
         uint256 lostCount;
         uint256 totalPredictions;
-        uint256 joinedDate;
-        bytes32 bannerImage;
-        bytes32 profileImage;
     }
 
     uint256 public miningFee; // paid by seller -> to be shared by validators
@@ -144,6 +142,10 @@ contract Main {
     event VoteSubmitted();
     event PredictionPurchased(bytes32 email);
     event ClosingVoteSubmitted();
+    event PredictionWithdrawn();
+    event PredictionUpdated();
+    event MinerOpeningVoteUpdated();
+    event MinerClosingVoteUpdated();
     /*╔═════════════════════════════╗
       ║             END             ║
       ║            EVENTS           ║
@@ -237,6 +239,17 @@ contract Main {
       _;
     }
 
+    modifier notMined(uint256 _UID){
+       require(Predictions[_UID].validatorCount == 0, "Prediction already mined");
+       _;
+    }
+
+    modifier isNftOwner(uint256 _tokenId){
+      require(TokenOwner[_tokenId] == msg.sender,  "Not NFT Owner");
+      _;
+    }
+    
+
     /**********************************/
     /*╔═════════════════════════════╗
       ║             END             ║
@@ -306,7 +319,7 @@ contract Main {
        _prediction.odd = _odd;
        _prediction.price = _price;
 
-       OwnedPredictions[msg.sender].push(_UID);
+      
 
       }
 
@@ -322,6 +335,7 @@ contract Main {
       Balances[msg.sender] -= total;
 
       _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+       OwnedPredictions[msg.sender].push(_UID);
       emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
 
@@ -340,6 +354,7 @@ contract Main {
       }
 
        _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+        OwnedPredictions[msg.sender].push(_UID);
       emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
 
@@ -378,6 +393,7 @@ contract Main {
     predictionEventNotStarted(_UID)
     newValidationRequest(_UID, _tokenId)
     {
+      require(Predictions[_UID].state != State.Withdrawn, "Prediction Withdrawn");
       Predictions[_UID].validators[_tokenId].opening = ValidationStatus.Assigned;
       Predictions[_UID].validators[_tokenId].closing = ValidationStatus.Assigned;
       Predictions[_UID].validatorCount += 1;
@@ -406,9 +422,9 @@ contract Main {
       emit ValidationRequested(); 
     }
 
-    function _setUpOpeningVote(uint256 _UID, uint256 _tokenId) internal
+    function _setUpOpeningVote(uint256 _UID, uint256 _tokenId) internal isNftOwner(_UID)
      view returns(Vote storage) {
-      require(TokenOwner[_tokenId] == msg.sender,  "Not NFT Owner");
+      
       require(Predictions[_UID].validators[_tokenId].opening == ValidationStatus.Assigned,
        "Vote already cast!");
       require(Predictions[_UID].startTime > block.timestamp, "Event already started");
@@ -560,6 +576,8 @@ contract Main {
       
     }
 
+
+
     function _settleSeller(uint256 _UID) internal {
       PredictionData storage _prediction = Predictions[_UID];
       require(!_prediction.withdrawnEarnings, "Earnings already withdrawn");
@@ -609,6 +627,111 @@ contract Main {
       _setPredictionOutcome(_UID);
       _settleSeller(_UID);
    }
+
+   /**pheripheral functions */
+  function withdrawPrediction(uint256 _UID) external 
+  onlySeller(_UID) notMined(_UID) {
+   _refundSellerStakingFee(_UID);
+    Predictions[_UID].state = State.Withdrawn;
+
+    emit PredictionWithdrawn();
+
+  }
+
+  function updatePrediction(
+      uint256 _UID, 
+      uint256 _startTime, 
+      uint256 _endTime, 
+      uint16 _odd, 
+      uint256 _price
+      ) external onlySeller(_UID) notMined(_UID) {
+    _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+
+    emit PredictionUpdated();
+  }
+
+  function _getMinerOpeningPredictionVote(uint256 _UID, uint256 _tokenId) internal view
+  returns(ValidationStatus){
+    return Predictions[_UID].validators[_tokenId].opening;
+  }
+
+  function _getMinerClosingPredictionVote(uint256 _UID, uint256 _tokenId) internal view 
+  returns(ValidationStatus) {
+    return Predictions[_UID].validators[_tokenId].closing;
+  }
+
+
+
+  function updateMinerOpeningVote(uint256 _UID, uint256 _tokenId, uint8 _vote) external isNftOwner(_tokenId){
+    require(Predictions[_UID].state == State.Inactive, "Prediction already active");
+    ValidationStatus _status = _getMinerOpeningPredictionVote(_UID, _tokenId);
+    require(_status != ValidationStatus.Neutral && _status != ValidationStatus.Assigned , "Didn't vote previously");
+    require(_vote > 1 && _vote <=3, "Vote cannot be neutral");
+    if(_vote == 2){
+      require(_status != ValidationStatus.Positive, "same as previous vote option");
+      Predictions[_UID].validators[_tokenId].opening = ValidationStatus.Positive;
+      Predictions[_UID].negativeOpeningVoteCount -= 1;
+      Predictions[_UID].positiveOpeningVoteCount += 1;
+    }else{
+      require(_status != ValidationStatus.Negative, "same as previous vote option");
+      Predictions[_UID].validators[_tokenId].opening = ValidationStatus.Negative;
+       Predictions[_UID].positiveOpeningVoteCount -= 1;
+       Predictions[_UID].negativeOpeningVoteCount += 1;
+    }
+
+    if(Predictions[_UID].positiveOpeningVoteCount == 3){
+        //prediction receives 60% positive validations
+        Predictions[_UID].state = State.Active;
+        UserProfile[Predictions[_UID].seller].totalPredictions += 1;
+      }
+      emit MinerOpeningVoteUpdated();
+  }
+
+  function updateMinerClosingVote(uint256 _UID, uint256 _tokenId, uint8 _vote) external isNftOwner(_tokenId){
+    require(Predictions[_UID].validators[_tokenId].closing == ValidationStatus.Positive ||
+    Predictions[_UID].validators[_tokenId].closing == ValidationStatus.Negative,
+       "Closing vote not cast yet!"
+       );
+      /**Cool down period is 6hrs (21600 secs) after the game ends */
+      require((block.timestamp > Predictions[_UID].endTime + 21600 && 
+      block.timestamp < Predictions[_UID].endTime + 43200), "Event not cooled down");
+
+      require(_vote > 1 && _vote <=3, "Vote cannot be neutral");
+      ValidationStatus _status = _getMinerClosingPredictionVote(_UID, _tokenId);
+      if(_vote == 2){
+      require(_status != ValidationStatus.Positive, "same as previous vote option");
+      Predictions[_UID].validators[_tokenId].closing = ValidationStatus.Positive;
+      Predictions[_UID].negativeClosingVoteCount -= 1;
+      Predictions[_UID].positiveClosingVoteCount += 1;
+        }else{
+      require(_status != ValidationStatus.Negative, "same as previous vote option");
+      Predictions[_UID].validators[_tokenId].closing = ValidationStatus.Negative;
+       Predictions[_UID].positiveClosingVoteCount -= 1;
+       Predictions[_UID].negativeClosingVoteCount += 1;
+    }
+
+    emit MinerClosingVoteUpdated();
+  }
+
+   function ownerOfNft(uint256 _tokenId) external view returns(address){
+     return TokenOwner[_tokenId];
+   }
+
+   function withdrawFunds(uint256 _amount) external {
+     require(Balances[msg.sender] >= _amount, "Not enough balance");
+     Balances[msg.sender] -= _amount;
+     // attempt to send the funds to the recipient
+            (bool success, ) = payable(msg.sender).call{
+                value: _amount,
+                gas: 20000
+            }("");
+            // if it failed, update their credit balance so they can pull it later
+            if (!success) {
+                Balances[msg.sender] += _amount;
+                   
+            }
+   }
+
 
 
   /** GENERAL ACCESS FUNCTIONS (to be moved) */
