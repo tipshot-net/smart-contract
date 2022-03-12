@@ -20,8 +20,26 @@ contract Main {
 
     address public constant NFT_CONTRACT_ADDRESS = address(0); //to be changed
 
-    mapping(address => uint256[]) public OwnedPredictions; //to change to array of struct
+    uint private constant SIXTY_PERCENT = 3;
 
+    uint private constant EIGHTY_PERCENT = 4;
+
+    uint private constant MAX_VALIDATORS = 5;
+
+    uint private constant TO_PERCENTAGE = 100;
+
+    uint private constant BANK_ROLL = 1000;
+
+    uint private constant CONSTANT_VALUE_MULTIPLIER = 1000;
+
+    uint private constant SIX_HOURS = 21600;
+
+    uint private constant TWELVE_HOURS = 43200;
+
+    uint private constant TWENTY_FOUR_HOURS = 86400;
+
+
+    mapping(address => uint256[]) public OwnedPredictions; 
 
     mapping (uint256 => address) internal TokenOwner;
 
@@ -30,7 +48,7 @@ contract Main {
 
   /** users can have thier accounts verified by 
   purchasing a unique username mapped to thier address */
-    mapping(address => bytes32) public UsernameService;
+    mapping(bytes32 => address) public UsernameService;
 
     mapping(address => Profile) public UserProfile;
 
@@ -102,11 +120,34 @@ contract Main {
       uint256 UID;
     }
 
-    struct Profile { 
-        uint8 rating;
+    struct PredictionHistory {
+      uint32 odd;
+      uint256 winnings;
+    }
+
+    struct Profile {
+        bytes32 username; 
+        uint16 rating;
         uint256 wonCount;
         uint256 lostCount;
         uint256 totalPredictions;
+        uint256  totalOdds;
+        uint256 grossWinnings;
+        PredictionHistory[] last30Predictions;
+
+        //Remember to divide by constant value (1000)
+
+        uint256 recentWinRate;
+        int256 recentYield;
+        int256 recentROI;
+        int256 recentProfitablity;
+        uint256 recentAverageOdds;
+
+        uint256 lifetimeWinRate;
+        int256 lifetimeYield;
+        int256 lifetimeROI;
+        int256 lifetimeProfitability;
+        uint256 lifetimeAverageOdds;
     }
 
     uint256 public miningFee; // paid by seller -> to be shared by validators
@@ -116,6 +157,7 @@ contract Main {
     uint32 public sellerPercentage; // % sellers cut, In event of prediction won
     uint32 public minimumOdd; 
     uint256 public minimumPrice;
+    uint16 public minimumVerificationPredictionsCount;
 
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
@@ -146,6 +188,7 @@ contract Main {
     event PredictionUpdated();
     event MinerOpeningVoteUpdated();
     event MinerClosingVoteUpdated();
+    event UsernameCreated(address, bytes32);
     /*╔═════════════════════════════╗
       ║             END             ║
       ║            EVENTS           ║
@@ -219,12 +262,12 @@ contract Main {
     }
 
     modifier validatorCountIncomplete(uint256 _UID){
-      require(Predictions[_UID].validatorCount < 5, "Required validator limit reached");
+      require(Predictions[_UID].validatorCount < MAX_VALIDATORS, "Required validator limit reached");
       _;
     }
 
     modifier validatorCountComplete(uint256 _UID){
-      require(Predictions[_UID].validatorCount == 5, "Required validator limit reached");
+      require(Predictions[_UID].validatorCount == MAX_VALIDATORS, "Required validator limit reached");
       _;
     }
 
@@ -265,7 +308,8 @@ contract Main {
         uint32 _minerPercentage,
         uint32 _sellerPercentage,
         uint16 _minimumOdd,
-        uint256 _minimumPrice
+        uint256 _minimumPrice,
+        uint16 _minimumVerificationPredictionsCount
     ) {
         owner = payable(msg.sender);
         miningFee = _miningFee;
@@ -275,6 +319,7 @@ contract Main {
         sellerPercentage = _sellerPercentage;
         minimumOdd = _minimumOdd;
         minimumPrice = _minimumPrice;
+        minimumVerificationPredictionsCount = _minimumVerificationPredictionsCount;
     }
     /** Does new prediction data satisfy all minimum requirements */
     function _sellerDoesMeetMinimumRequirements(
@@ -287,7 +332,7 @@ contract Main {
       if(_starttime  < block.timestamp || 
         _endtime < block.timestamp ||
         _endtime < _starttime ||
-        (_endtime - _starttime) > 86400){
+        (_endtime - _starttime) > TWENTY_FOUR_HOURS){
 
         return false;
       }
@@ -311,16 +356,15 @@ contract Main {
       _odd, 
      _price
       )   {
-       PredictionData storage _prediction = Predictions[_UID];
-       _prediction.UID = _UID;
-       _prediction.seller = msg.sender;
-       _prediction.startTime = _startTime;
-       _prediction.endTime = _endTime;
-       _prediction.odd = _odd;
-       _prediction.price = _price;
+       
+       Predictions[_UID].UID = _UID;
+       Predictions[_UID].seller = msg.sender;
+       Predictions[_UID].startTime = _startTime;
+       Predictions[_UID].endTime = _endTime;
+       Predictions[_UID].odd = _odd;
+       Predictions[_UID].price = _price;
 
-      
-
+       OwnedPredictions[msg.sender].push(_UID);
       }
 
     function createPredictionWithWallet(
@@ -335,7 +379,6 @@ contract Main {
       Balances[msg.sender] -= total;
 
       _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
-       OwnedPredictions[msg.sender].push(_UID);
       emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
 
@@ -354,7 +397,6 @@ contract Main {
       }
 
        _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
-        OwnedPredictions[msg.sender].push(_UID);
       emit PredictionCreated(msg.sender, _UID, _startTime, _endTime, _odd, _price);
     }
 
@@ -397,7 +439,7 @@ contract Main {
       Predictions[_UID].validators[_tokenId].opening = ValidationStatus.Assigned;
       Predictions[_UID].validators[_tokenId].closing = ValidationStatus.Assigned;
       Predictions[_UID].validatorCount += 1;
-      if(Predictions[_UID].validatorCount == 5){
+      if(Predictions[_UID].validatorCount == MAX_VALIDATORS){
         Predictions[_UID].status = Status.Complete;
       }
       ValidationData memory _data = ValidationData({tokenId:_tokenId, UID:_UID});
@@ -445,16 +487,16 @@ contract Main {
         Predictions[_UID].negativeOpeningVoteCount += 1;
       }
 
-      if(Predictions[_UID].positiveOpeningVoteCount == 3){
+      if(Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT){
         //prediction receives 60% positive validations
         Predictions[_UID].state = State.Active;
-        UserProfile[Predictions[_UID].seller].totalPredictions += 1;
+        
       }
-      if(Predictions[_UID].negativeOpeningVoteCount >= 4){
+      if(Predictions[_UID].negativeOpeningVoteCount >= EIGHTY_PERCENT){
         Predictions[_UID].state = State.Denied;
       }
       
-      uint256 minerBonus = miningFee / 5; 
+      uint256 minerBonus = miningFee / MAX_VALIDATORS; 
       Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
 
       emit VoteSubmitted();
@@ -501,8 +543,8 @@ contract Main {
        "Vote already cast!"
        );
       /**Cool down period is 6hrs (21600 secs) after the game ends */
-      require((block.timestamp > Predictions[_UID].endTime + 21600 && 
-      block.timestamp < Predictions[_UID].endTime + 43200), "Event not cooled down");
+      require((block.timestamp > Predictions[_UID].endTime + SIX_HOURS && 
+      block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS), "Event not cooled down");
       return Predictions[_UID].validators[_tokenId];
       
     }
@@ -538,17 +580,10 @@ contract Main {
       return (found, position);
     }
 
-    function withdrawNFT(uint256 _tokenId) external {
+
+
+    function withdrawNFT(uint256 _tokenId) internal {
       require(TokenOwner[_tokenId] == msg.sender,  "Not NFT Owner");
-      ValidationData[] memory _validations = OwnedValidations[msg.sender];
-      (bool found, uint256 position) = _getNftIndex(_validations, _tokenId);
-      require(found, "NFT not found!");
-      uint256 _UID = _validations[position].UID;
-      uint256 _superCoolDownTime = Predictions[_UID].endTime + 43200;
-      require(Predictions[_UID].state == State.Concluded ||
-       block.timestamp > _superCoolDownTime,
-       "Cannot withdraw NFT now");
-        _settleValidator(_UID, _tokenId);
       address _nftRecipient = TokenOwner[_tokenId];
       IERC721(NFT_CONTRACT_ADDRESS).transferFrom(
             address(this),
@@ -563,26 +598,39 @@ contract Main {
       
     }
 
-    function _settleValidator(uint256 _UID, uint256 _tokenId) internal {
-      require(TokenOwner[_tokenId] == msg.sender, "Not token owner");
-      Vote memory _vote = Predictions[_UID].validators[_tokenId];
-      require(_vote.opening == ValidationStatus.Positive ||
-      _vote.opening == ValidationStatus.Negative, "Didn't vote on opening");
-      Status _status = Predictions[_UID].status;
-      if(_status == Status.Won){
-        
-      }
-      
-      
+    function _removeFromOwnedPredictions(uint256[] storage _activePredictions, uint256 _UID)
+          internal{
+            if(_activePredictions.length == 0){
+              return;
+            }else if(_activePredictions.length == 1){
+              _activePredictions.pop();
+              return;
+            }else{
+              uint position;
+              for (uint256 index = 0; index < _activePredictions.length; index++) {
+
+                if(_activePredictions[index] == _UID){
+                  position = index;
+                  break;
+            }
+               }
+               if(position > 0){
+                  for (uint i = position; i < _activePredictions.length - 1; i++) {
+                _activePredictions[i] = _activePredictions[i + 1];
+            }
+            _activePredictions.pop();
+               }
+       }
+           
+          
     }
 
 
-
-    function _settleSeller(uint256 _UID) internal {
+    function concludeTransaction(uint256 _UID) external {
       PredictionData storage _prediction = Predictions[_UID];
-      require(!_prediction.withdrawnEarnings, "Earnings already withdrawn");
+      require(!_prediction.withdrawnEarnings, "Transaction already concluded");
+      _setUpSellerClosing(_prediction);
       if(_prediction.status == Status.Won){
-        _refundSellerStakingFee(_UID);
         uint256 _sellerPercentageAmount = _prediction.totalEarned * (sellerPercentage / 100);
         Balances[_prediction.seller] += _sellerPercentageAmount;
       }else{
@@ -590,22 +638,68 @@ contract Main {
           Balances[_prediction.buyersList[index]] += _prediction.price;
         }
       }
-
-      _prediction.withdrawnEarnings = true;
+        _removeFromOwnedPredictions(OwnedPredictions[_prediction.seller], Predictions[_UID].UID);
+        _prediction.withdrawnEarnings = true;     
     }
 
-    function _refundSellerStakingFee(uint _UID) internal {
-      address seller = Predictions[_UID].seller;
-      require(Predictions[_UID].state != State.Denied, "Refund request denied");
-      require(!Predictions[_UID].sellerStakingFeeRefunded, "Staking fee already refunded");
-      Predictions[_UID].sellerStakingFeeRefunded = true;
-      Balances[seller] += sellerStakingFee;
+
+    function _updateSellerProfile(PredictionData storage _prediction, bool _predictionWon) internal {
+      UserProfile[_prediction.seller].totalPredictions += 1;
+      UserProfile[_prediction.seller].totalOdds += _prediction.odd;
+      if(_predictionWon){
+        UserProfile[_prediction.seller].wonCount += 1;
+        UserProfile[_prediction.seller].grossWinnings += BANK_ROLL * _prediction.odd;
+      }else{
+        UserProfile[_prediction.seller].lostCount += 1;
+      }
+      _addToRecentPredictionsList(_prediction.seller, _prediction.odd, _predictionWon);
+      uint256 _listLength = (UserProfile[_prediction.seller].last30Predictions).length;
+      ( uint256 _wonCount,
+      uint256 _grossWinnings, 
+      uint256 _moneyLost, 
+      uint256 _totalOdds ) = _getRecentPredictionsData(_prediction.seller);
+      UserProfile[_prediction.seller].recentWinRate = _getRecentWinRate(
+        _wonCount,
+        _listLength
+      );
+      UserProfile[_prediction.seller].recentYield = _getRecentYield(
+        _grossWinnings,
+        _listLength
+      );
+      UserProfile[_prediction.seller].recentROI = _getRecentROI(
+        _grossWinnings,
+        _listLength
+      );
+      UserProfile[_prediction.seller].recentProfitablity = _getRecentProfitability(
+        _grossWinnings, 
+        _moneyLost,
+        _listLength
+      );
+      UserProfile[_prediction.seller].recentAverageOdds = _getRecentAverageOdds(
+        _totalOdds,
+        _listLength
+      );
+
+      UserProfile[_prediction.seller].lifetimeWinRate = _getLifetimeWinRate(_prediction.seller);
+      UserProfile[_prediction.seller].lifetimeYield = _getLifetimeYield(_prediction.seller);
+      UserProfile[_prediction.seller].lifetimeROI = _getLifetimeROI(_prediction.seller);
+      UserProfile[_prediction.seller].lifetimeProfitability = _getLifetimeProfitability(_prediction.seller);
+      UserProfile[_prediction.seller].lifetimeAverageOdds = _getLifetimeAverageOdds(_prediction.seller);
+    }
+
+    function _refundSellerStakingFee(PredictionData storage _prediction) internal {
+     
+      if(_prediction.state != State.Denied &&
+          !_prediction.sellerStakingFeeRefunded ){
+             _prediction.sellerStakingFeeRefunded = true;
+                Balances[_prediction.seller] += sellerStakingFee;
+          }
+     
     }
 
   
 
-    function _setPredictionOutcome(uint256 _UID) internal {
-      PredictionData storage _prediction = Predictions[_UID];
+    function _setPredictionOutcome(PredictionData storage _prediction) internal {
       if(_prediction.positiveClosingVoteCount > 
       _prediction.negativeClosingVoteCount){
         _prediction.status = Status.Won;
@@ -617,22 +711,23 @@ contract Main {
       }
     }
 
-   function _setUpSellerClosing(uint256 _UID) internal {
-     PredictionData storage _prediction = Predictions[_UID];
+   function _setUpSellerClosing(PredictionData storage _prediction) internal {
      require(_prediction.seller == msg.sender, "Not seller");
-     require(block.timestamp > _prediction.endTime + 21600 &&
-      block.timestamp < _prediction.endTime + 43200, "Event not cooled down");
-      require(_prediction.state == State.Active, "Event no longer active");
+     require(_prediction.state == State.Active, "Event no longer active");
+     require(block.timestamp > _prediction.endTime + SIX_HOURS, "Event not cooled down");
+       _refundSellerStakingFee(_prediction);
+      _setPredictionOutcome(_prediction);
       _prediction.state = State.Concluded;
-      _setPredictionOutcome(_UID);
-      _settleSeller(_UID);
+      bool _outcome = _prediction.status == Status.Won ? true : false;
+      _updateSellerProfile(_prediction, _outcome);
    }
 
    /**pheripheral functions */
   function withdrawPrediction(uint256 _UID) external 
   onlySeller(_UID) notMined(_UID) {
-   _refundSellerStakingFee(_UID);
-    Predictions[_UID].state = State.Withdrawn;
+    PredictionData storage _prediction = Predictions[_UID];
+   _refundSellerStakingFee(_prediction);
+    _prediction.state = State.Withdrawn;
 
     emit PredictionWithdrawn();
 
@@ -666,7 +761,7 @@ contract Main {
     require(Predictions[_UID].state == State.Inactive, "Prediction already active");
     ValidationStatus _status = _getMinerOpeningPredictionVote(_UID, _tokenId);
     require(_status != ValidationStatus.Neutral && _status != ValidationStatus.Assigned , "Didn't vote previously");
-    require(_vote > 1 && _vote <=3, "Vote cannot be neutral");
+    require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
     if(_vote == 2){
       require(_status != ValidationStatus.Positive, "same as previous vote option");
       Predictions[_UID].validators[_tokenId].opening = ValidationStatus.Positive;
@@ -679,10 +774,9 @@ contract Main {
        Predictions[_UID].negativeOpeningVoteCount += 1;
     }
 
-    if(Predictions[_UID].positiveOpeningVoteCount == 3){
+    if(Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT){
         //prediction receives 60% positive validations
         Predictions[_UID].state = State.Active;
-        UserProfile[Predictions[_UID].seller].totalPredictions += 1;
       }
       emit MinerOpeningVoteUpdated();
   }
@@ -693,10 +787,10 @@ contract Main {
        "Closing vote not cast yet!"
        );
       /**Cool down period is 6hrs (21600 secs) after the game ends */
-      require((block.timestamp > Predictions[_UID].endTime + 21600 && 
-      block.timestamp < Predictions[_UID].endTime + 43200), "Event not cooled down");
+      require((block.timestamp > Predictions[_UID].endTime + SIX_HOURS && 
+      block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS), "Event not cooled down");
 
-      require(_vote > 1 && _vote <=3, "Vote cannot be neutral");
+      require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
       ValidationStatus _status = _getMinerClosingPredictionVote(_UID, _tokenId);
       if(_vote == 2){
       require(_status != ValidationStatus.Positive, "same as previous vote option");
@@ -723,7 +817,7 @@ contract Main {
      // attempt to send the funds to the recipient
             (bool success, ) = payable(msg.sender).call{
                 value: _amount,
-                gas: 20000
+                gas: 23000
             }("");
             // if it failed, update their credit balance so they can pull it later
             if (!success) {
@@ -732,7 +826,137 @@ contract Main {
             }
    }
 
+   function createUsername(bytes32 _username) external {
+     require(UserProfile[msg.sender].totalPredictions >= minimumVerificationPredictionsCount,
+     "Not enough total predictions");
+     require(_username != bytes32(0), "Username cannot be null");
+     require(UserProfile[msg.sender].username == bytes32(0), "Username already exists");
+     UserProfile[msg.sender].username = _username;
+     emit UsernameCreated(msg.sender, _username);
+   }
 
+   function _getLifetimeWinRate(address _tipster) internal view returns(uint256) {
+     return ((UserProfile[_tipster].wonCount * CONSTANT_VALUE_MULTIPLIER) / 
+     UserProfile[_tipster].totalPredictions) * TO_PERCENTAGE;
+   }
+
+   function _getLifetimeYield(address _tipster) internal view returns(int256) {
+     int256 _grossWinings = int(UserProfile[_tipster].grossWinnings);
+     int256 _capitalEmployed = int(UserProfile[_tipster].totalPredictions) * int(BANK_ROLL);
+     
+     return (((_grossWinings - _capitalEmployed) * int(CONSTANT_VALUE_MULTIPLIER)) 
+            / _capitalEmployed) * int(TO_PERCENTAGE);
+     
+   }
+
+   function _getLifetimeROI(address _tipster) internal view returns(int256){
+     int256 _grossWinings = int(UserProfile[_tipster].grossWinnings);
+     int256 _capitalEmployed = int(UserProfile[_tipster].totalPredictions) * int(BANK_ROLL);
+
+     return ((_grossWinings - _capitalEmployed) * int(CONSTANT_VALUE_MULTIPLIER)) 
+           / int(BANK_ROLL) * int(TO_PERCENTAGE);
+   }
+
+   function _getLifetimeProfitability(address _tipster) internal view returns(int256){
+     int256 _grossWinings = int(UserProfile[_tipster].grossWinnings);
+     int256 _capitalEmployed = int(UserProfile[_tipster].totalPredictions) * int(BANK_ROLL);
+     int256 _moneyLost = int(BANK_ROLL) * int(UserProfile[_tipster].lostCount);
+
+     return ((_grossWinings - _capitalEmployed)
+      * int(CONSTANT_VALUE_MULTIPLIER)) 
+      / _moneyLost * int(TO_PERCENTAGE);
+     
+   }
+
+   function _getLifetimeAverageOdds(address _tipster) internal view returns (uint256) {
+      return (UserProfile[_tipster].totalOdds * CONSTANT_VALUE_MULTIPLIER) / 
+      UserProfile[_tipster].totalPredictions;
+   }
+
+   function _addToRecentPredictionsList(address _tipster, uint32 _odd, bool _won) internal {
+     PredictionHistory[] storage _list = UserProfile[_tipster].last30Predictions;
+     uint256 _winnings = _won ? (uint(BANK_ROLL) * _odd) : 0;
+     if(_list.length < 30){
+       _list.push(PredictionHistory({odd: _odd, winnings: _winnings}));
+     }else{
+       for (uint i = 0; i < _list.length - 1; i++) {
+            _list[i] = _list[i + 1];
+        }
+        _list.pop();
+        _list.push(PredictionHistory({odd: _odd, winnings: _winnings}));
+     }
+   }
+
+   function _getRecentWinRate(
+     uint256 _wonCount,
+     uint256 listLength
+     ) internal pure returns (uint256) {
+      return (_wonCount * CONSTANT_VALUE_MULTIPLIER) / listLength * TO_PERCENTAGE;
+   }
+
+   function _getRecentYield(
+     uint256 _grossWinnings,
+     uint256 listLength
+     ) internal pure returns(int256) {
+
+     uint256 _capitalEmployed = listLength * BANK_ROLL;
+     return ((int(_grossWinnings) - int(_capitalEmployed))
+      * int(CONSTANT_VALUE_MULTIPLIER)) / (int(_capitalEmployed) * int(TO_PERCENTAGE));
+     
+   }
+
+   function _getRecentROI(
+     uint256 _grossWinnings,
+     uint256 listLength
+     ) internal pure returns(int256) {
+     
+     uint256 _capitalEmployed = listLength * BANK_ROLL;
+
+     return ((int(_grossWinnings) - int(_capitalEmployed)) * int(CONSTANT_VALUE_MULTIPLIER))
+       / int(BANK_ROLL) * int(TO_PERCENTAGE);
+
+   }
+
+   function _getRecentProfitability(
+     uint256 _grossWinnings,
+     uint256 _moneyLost,
+     uint256 listLength
+   ) internal pure returns(int256) {
+     uint256 _capitalEmployed = listLength * BANK_ROLL;
+    
+     return ((int(_grossWinnings) - int(_capitalEmployed))
+      * int(CONSTANT_VALUE_MULTIPLIER))  /  int(_moneyLost) * int(TO_PERCENTAGE);
+   }
+
+   function _getRecentAverageOdds( 
+     uint256 _totalOdds,
+     uint256 listLength
+     )
+    internal pure returns (uint256) {
+      return (_totalOdds * CONSTANT_VALUE_MULTIPLIER) / listLength;
+   }
+
+   function _getRecentPredictionsData(address _tipster) internal view 
+   returns(
+     uint256 _wonCount,
+     uint256 _grossWinnings,
+     uint256 _moneyLost,
+     uint256 _totalOdds
+     ){
+
+     PredictionHistory[] memory _list = UserProfile[_tipster].last30Predictions;
+   
+      for (uint256 index = 0; index < _list.length; index++) {
+        if(_list[index].winnings != 0){
+          _wonCount += 1;
+        }
+        _grossWinnings += _list[index].winnings;
+        _moneyLost += _list[index].winnings == 0 ? BANK_ROLL : 0;
+         _totalOdds += _list[index].odd;
+
+      }
+      return(_wonCount, _grossWinnings, _moneyLost, _totalOdds);
+   }
 
   /** GENERAL ACCESS FUNCTIONS (to be moved) */
 
