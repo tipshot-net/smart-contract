@@ -275,10 +275,9 @@ contract Predictsea is IERC721Receiver {
     _;
   }
 
-  modifier predictionEventAlreadyStarted(uint256 _UID){
-    require( block.timestamp >  Predictions[_UID].startTime,
-      "Event not started");
-      _;
+  modifier predictionEventAlreadyStarted(uint256 _UID) {
+    require(block.timestamp > Predictions[_UID].startTime, "Event not started");
+    _;
   }
 
   modifier validatorCountIncomplete(uint256 _UID) {
@@ -353,13 +352,12 @@ contract Predictsea is IERC721Receiver {
   function _sellerDoesMeetMinimumRequirements(
     uint256 _starttime,
     uint256 _endtime
-
   ) internal view returns (bool) {
     if (
       _starttime < block.timestamp ||
       _endtime < block.timestamp ||
       _endtime < _starttime ||
-      (_endtime - _starttime) > TWENTY_FOUR_HOURS
+      (_endtime - _starttime) > (TWENTY_FOUR_HOURS * 2)
     ) {
       return false;
     }
@@ -629,24 +627,27 @@ contract Predictsea is IERC721Receiver {
     emit ClosingVoteSubmitted();
   }
 
-  
   function _removeFromOwnedValidations(uint256[] calldata _UIDs) external {
     require(OwnedValidations[msg.sender].length > 0, "No owned validations");
     for (uint256 index = 0; index < _UIDs.length; index++) {
-      if(ActiveValidations[_UIDs[index]][msg.sender] && 
-        Predictions[_UIDs[index]].state == State.Concluded){
-          ActiveValidations[_UIDs[index]][msg.sender] = false;
-        }
+      if (
+        ActiveValidations[_UIDs[index]][msg.sender] &&
+        Predictions[_UIDs[index]].state == State.Concluded
+      ) {
+        ActiveValidations[_UIDs[index]][msg.sender] = false;
+      }
     }
   }
 
   function removeFromBoughtPredictions(uint256[] calldata _UIDs) external {
     require(BoughtPredictions[msg.sender].length > 0, "No bought predictions");
     for (uint256 index = 0; index < _UIDs.length; index++) {
-      if(ActiveBoughtPredictions[_UIDs[index]][msg.sender] && 
-        Predictions[_UIDs[index]].state == State.Concluded){
-          ActiveBoughtPredictions[_UIDs[index]][msg.sender] = false;
-        }
+      if (
+        ActiveBoughtPredictions[_UIDs[index]][msg.sender] &&
+        Predictions[_UIDs[index]].state == State.Concluded
+      ) {
+        ActiveBoughtPredictions[_UIDs[index]][msg.sender] = false;
+      }
     }
   }
 
@@ -669,12 +670,13 @@ contract Predictsea is IERC721Receiver {
   function _removeFromOwnedPredictions(uint256[] calldata _UIDs) external {
     require(OwnedPredictions[msg.sender].length > 0, "No active predictions");
     for (uint256 index = 0; index < _UIDs.length; index++) {
-      if(ActiveSoldPredictions[_UIDs[index]][msg.sender] && 
-        Predictions[_UIDs[index]].state == State.Concluded){
-          ActiveSoldPredictions[_UIDs[index]][msg.sender] = false;
-        }
+      if (
+        ActiveSoldPredictions[_UIDs[index]][msg.sender] &&
+        Predictions[_UIDs[index]].state == State.Concluded
+      ) {
+        ActiveSoldPredictions[_UIDs[index]][msg.sender] = false;
+      }
     }
-    
   }
 
   function _getWinningOpeningVote(uint256 _UID)
@@ -742,7 +744,6 @@ contract Predictsea is IERC721Receiver {
           Balances[_prediction.votes[index].miner] += _minerPercentageAmount;
         }
       }
-      
     } else {
       for (uint256 index = 0; index < _prediction.buyersList.length; index++) {
         Balances[_prediction.buyersList[index]] += _prediction.price;
@@ -764,7 +765,7 @@ contract Predictsea is IERC721Receiver {
         _prediction.votes[index].correctValidation = true;
         _prediction.votes[index].stakingFeeRefunded = true;
         Balances[_prediction.votes[index].miner] += minerStakingFee;
-      }else{
+      } else {
         lockFunds(_prediction.votes[index].miner, minerStakingFee);
       }
     }
@@ -862,7 +863,10 @@ contract Predictsea is IERC721Receiver {
     }
   }
 
-  function _setUpSellerClosing(PredictionData storage _prediction, bool _sellerVote) internal onlySeller(_prediction.UID) {
+  function _setUpSellerClosing(
+    PredictionData storage _prediction,
+    bool _sellerVote
+  ) internal onlySeller(_prediction.UID) {
     require(_prediction.state == State.Active, "Event no longer active");
     require(
       block.timestamp > _prediction.endTime + SIX_HOURS,
@@ -870,10 +874,10 @@ contract Predictsea is IERC721Receiver {
     );
     _refundSellerStakingFee(_prediction);
     _setPredictionOutcome(_prediction);
-    if(_prediction.status == Status.Inconclusive){
-      if(_sellerVote == true){
+    if (_prediction.status == Status.Inconclusive) {
+      if (_sellerVote == true) {
         _prediction.positiveClosingVoteCount += 1;
-      }else{
+      } else {
         _prediction.negativeClosingVoteCount += 1;
       }
       _setPredictionOutcome(_prediction);
@@ -907,8 +911,6 @@ contract Predictsea is IERC721Receiver {
 
     emit PredictionUpdated();
   }
-
-  
 
   function _getMinerOpeningPredictionVote(uint256 _UID, uint256 _tokenId)
     internal
@@ -1030,8 +1032,7 @@ contract Predictsea is IERC721Receiver {
 
   function createUsername(bytes32 _username) external {
     require(
-      UserProfile[msg.sender].wonCount >=
-        minWonCountForVerification,
+      UserProfile[msg.sender].wonCount >= minWonCountForVerification,
       "Not enough total predictions"
     );
     require(_username != bytes32(0), "Username cannot be null");
@@ -1198,40 +1199,68 @@ contract Predictsea is IERC721Receiver {
     return (_wonCount, _grossWinnings, _moneyLost, _totalOdds);
   }
 
-  
-
-  function lockFunds(address _user, uint256 _amount) internal notZeroAddress(_user) {
+  function lockFunds(address _user, uint256 _amount)
+    internal
+    notZeroAddress(_user)
+  {
     LockedFunds[_user].amount += _amount;
     LockedFunds[_user].lastPushDate += block.timestamp;
     LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
     LockedFunds[_user].totalInstances += 1;
   }
 
-  function transferLockedFunds(uint _amount) external {
+  function transferLockedFunds(uint256 _amount) external {
     require(LockedFunds[msg.sender].amount > _amount, "Not enough balance");
-    require(block.timestamp > LockedFunds[msg.sender].releaseDate, "Assets still frozen");
-    LockedFunds[msg.sender].amount -=  _amount;
+    require(
+      block.timestamp > LockedFunds[msg.sender].releaseDate,
+      "Assets still frozen"
+    );
+    LockedFunds[msg.sender].amount -= _amount;
     Balances[msg.sender] += _amount;
 
     emit LockedFundsTransferred();
   }
 
-  function withdrawMinerNftandStakingFee(uint256 _tokenId, uint256 _UID) external 
-  isNftOwner(_tokenId) predictionEventAlreadyStarted(_UID) {
-  require(Predictions[_UID].state == State.Inactive || Predictions[_UID].state == State.Denied, "Prediction not inactive");
-  require(Predictions[_UID].validators[_tokenId].opening == ValidationStatus.Positive ||
-  Predictions[_UID].validators[_tokenId].opening == ValidationStatus.Negative, "Opening vote not cast");
-  require(!Predictions[_UID].validators[_tokenId].stakingFeeRefunded , "Staking fee already refunded");
-  Predictions[_UID].validators[_tokenId].stakingFeeRefunded = true;
-  Balances[TokenOwner[_tokenId]] += minerStakingFee;
-  _withdrawNFT(_tokenId);
-   emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _tokenId, _UID);
+  function withdrawMinerNftandStakingFee(uint256 _tokenId, uint256 _UID)
+    external
+    isNftOwner(_tokenId)
+    predictionEventAlreadyStarted(_UID)
+  {
+    require(
+      Predictions[_UID].state == State.Inactive ||
+        Predictions[_UID].state == State.Denied,
+      "Prediction not inactive"
+    );
+    require(
+      Predictions[_UID].validators[_tokenId].opening ==
+        ValidationStatus.Positive ||
+        Predictions[_UID].validators[_tokenId].opening ==
+        ValidationStatus.Negative,
+      "Opening vote not cast"
+    );
+    require(
+      !Predictions[_UID].validators[_tokenId].stakingFeeRefunded,
+      "Staking fee already refunded"
+    );
+    Predictions[_UID].validators[_tokenId].stakingFeeRefunded = true;
+    Balances[TokenOwner[_tokenId]] += minerStakingFee;
+    _withdrawNFT(_tokenId);
+    emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _tokenId, _UID);
   }
 
-  function withdrawSellerStakingFee(uint256 _UID) external 
-  onlySeller(_UID) predictionEventAlreadyStarted(_UID) {
-    require(Predictions[_UID].state == State.Inactive, "Prediction not inactive");
-    require(!Predictions[_UID].sellerStakingFeeRefunded, "Staking fee already refunded");
+  function withdrawSellerStakingFee(uint256 _UID)
+    external
+    onlySeller(_UID)
+    predictionEventAlreadyStarted(_UID)
+  {
+    require(
+      Predictions[_UID].state == State.Inactive,
+      "Prediction not inactive"
+    );
+    require(
+      !Predictions[_UID].sellerStakingFeeRefunded,
+      "Staking fee already refunded"
+    );
     Predictions[_UID].sellerStakingFeeRefunded = true;
     Balances[Predictions[_UID].seller] += sellerStakingFee;
     emit SellerStakingFeeRefunded(Predictions[_UID].seller, _UID);
