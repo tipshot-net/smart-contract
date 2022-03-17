@@ -2,14 +2,13 @@
 pragma solidity ^0.8;
 
 import "hardhat/console.sol";
+import "./Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // @title PredictSea {Blockchain powered sport prediction marketplace}
 
-contract Predictsea is IERC721Receiver {
-  address payable public owner; //The contract deployer and owner
-
+contract Predictsea is IERC721Receiver, Ownable {
   /**
    maps unique id of prediction in the centralized server
    to each contract struct record.
@@ -20,7 +19,7 @@ contract Predictsea is IERC721Receiver {
 
   mapping(address => LockedFundsData) public LockedFunds;
 
-  address public constant NFT_CONTRACT_ADDRESS = address(0); //to be changed
+  address public NFT_CONTRACT_ADDRESS;
 
   uint256 private constant SIXTY_PERCENT = 3;
 
@@ -59,15 +58,6 @@ contract Predictsea is IERC721Receiver {
   mapping(bytes32 => address) public UsernameService;
 
   mapping(address => Profile) public UserProfile;
-
-  /** contract can be locked in case of emergencies */
-  bool public locked = false;
-
-  uint256 private lastLockedDate;
-
-  /** nominated address can claim ownership of contract 
-    and automatically become owner */
-  address payable private nominatedOwner;
 
   enum Status {
     Pending,
@@ -187,9 +177,6 @@ contract Predictsea is IERC721Receiver {
     uint256 price
   );
   event DepositCreated(address sender, uint256 value);
-  event IsLocked(bool lock_status);
-  event NewOwnerNominated(address nominee);
-  event OwnershipTransferred(address newOwner);
 
   /**Validator opening events (Arch 2) *temp */
 
@@ -214,24 +201,8 @@ contract Predictsea is IERC721Receiver {
     ║          MODIFIERS          ║
     ╚═════════════════════════════╝*/
 
-  modifier onlyOwner() {
-    require(msg.sender == owner, "Unauthorized access to contract");
-    _;
-  }
-
-  modifier isOpen() {
-    require(!locked, "Contract in locked state");
-
-    _;
-  }
-
   modifier uniqueId(uint256 UID) {
     require(Predictions[UID].UID == 0, "UID already exists");
-    _;
-  }
-
-  modifier notZeroAddress(address _address) {
-    require(_address != address(0), "Cannot specify 0 address");
     _;
   }
 
@@ -332,6 +303,7 @@ contract Predictsea is IERC721Receiver {
 
   // constructor
   constructor(
+    address _NFTAddress,
     uint256 _miningFee,
     uint256 _sellerStakingFee,
     uint256 _minerStakingFee,
@@ -340,6 +312,7 @@ contract Predictsea is IERC721Receiver {
     uint16 _minWonCountForVerification
   ) {
     owner = payable(msg.sender);
+    NFT_CONTRACT_ADDRESS = _NFTAddress;
     miningFee = _miningFee;
     sellerStakingFee = _sellerStakingFee;
     minerStakingFee = _minerStakingFee;
@@ -1268,44 +1241,6 @@ contract Predictsea is IERC721Receiver {
 
   /** GENERAL ACCESS FUNCTIONS (to be moved) */
 
-  receive() external payable {
-    Balances[msg.sender] += msg.value;
-    emit DepositCreated(msg.sender, msg.value);
-  }
-
-  function lock() external onlyOwner {
-    locked = true;
-    lastLockedDate = block.timestamp;
-    emit IsLocked(locked);
-  }
-
-  function unlock() external {
-    require(
-      locked &&
-        (msg.sender == owner || (block.timestamp > lastLockedDate + 604800)),
-      "Not owner!"
-    );
-    locked = false;
-    emit IsLocked(locked);
-  }
-
-  function nominateNewOwner(address _address)
-    external
-    onlyOwner
-    notZeroAddress(_address)
-  {
-    require(_address != owner, "Owner address can't be nominated");
-    nominatedOwner = payable(_address);
-    emit NewOwnerNominated(nominatedOwner);
-  }
-
-  function transferOwnership() external {
-    require(nominatedOwner != address(0), "Nominated owner not set");
-    require(msg.sender == nominatedOwner, "Not a nominated owner");
-    owner = nominatedOwner;
-    emit OwnershipTransferred(owner);
-  }
-
   function onERC721Received(
     address,
     address,
@@ -1313,5 +1248,10 @@ contract Predictsea is IERC721Receiver {
     bytes calldata
   ) external pure returns (bytes4) {
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+  }
+
+  receive() external payable {
+    Balances[msg.sender] += msg.value;
+    emit DepositCreated(msg.sender, msg.value);
   }
 }
