@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./PredictSea.sol";
+import "./Predictsea.sol";
 
 contract AttackerContract {
   uint256 public balanceOfContract;

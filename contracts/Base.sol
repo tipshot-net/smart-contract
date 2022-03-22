@@ -1,0 +1,343 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8;
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+abstract contract Base {
+  /**
+   maps unique id of prediction in the centralized server
+   to each contract struct record.
+    */
+  mapping(uint256 => PredictionData) internal Predictions;
+
+  mapping(address => uint256) public Balances;
+
+  mapping(address => LockedFundsData) public LockedFunds;
+
+  address public NFT_CONTRACT_ADDRESS;
+
+  uint256 internal constant SIXTY_PERCENT = 3;
+
+  uint256 internal constant EIGHTY_PERCENT = 4;
+
+  uint256 internal constant MAX_VALIDATORS = 5;
+
+  uint256 internal constant TO_PERCENTAGE = 100;
+
+  uint256 internal constant BANK_ROLL = 1000;
+
+  uint256 internal constant CONSTANT_VALUE_MULTIPLIER = 1000;
+
+  uint256 internal constant SIX_HOURS = 21600;
+
+  uint256 internal constant TWELVE_HOURS = 43200;
+
+  uint256 internal constant TWENTY_FOUR_HOURS = 86400;
+
+  mapping(address => uint256[]) public BoughtPredictions;
+
+  mapping(address => uint256[]) public OwnedPredictions;
+
+  mapping(address => ValidationData[]) public OwnedValidations;
+
+  mapping(uint256 => address) internal TokenOwner;
+
+  mapping(uint256 => mapping(address => bool)) internal ActiveBoughtPredictions;
+
+  mapping(uint256 => mapping(address => bool)) internal ActiveValidations;
+
+  mapping(uint256 => mapping(address => bool)) internal ActiveSoldPredictions;
+
+  mapping(address => PerformanceData) public Performance;
+
+  /** users can have thier accounts verified by 
+  purchasing a unique username mapped to thier address */
+  mapping(bytes32 => address) public UsernameService;
+
+  mapping(address => Profile) public UserProfile;
+
+  enum Status {
+    Pending,
+    Complete,
+    Won,
+    Lost,
+    Inconclusive
+  }
+
+  enum State {
+    Inactive,
+    Withdrawn,
+    Denied,
+    Active,
+    Concluded
+  }
+
+  enum ValidationStatus {
+    Neutral,
+    Assigned,
+    Positive,
+    Negative
+  }
+
+  struct LockedFundsData {
+    uint256 amount;
+    uint256 lastPushDate;
+    uint256 releaseDate;
+    uint256 totalInstances;
+  }
+
+  struct Vote {
+    address miner;
+    ValidationStatus opening;
+    ValidationStatus closing;
+    bool stakingFeeRefunded;
+    bool correctValidation;
+  }
+
+  struct PredictionData {
+    uint256 UID; // reference to database prediction record
+    address seller;
+    uint256 startTime; //start time of first predicted event
+    uint256 endTime; //start time of last predicted event
+    uint16 odd;
+    uint256 price;
+    address[] buyersList;
+    Vote[] votes;
+    mapping(address => PurchaseData) buyers;
+    mapping(uint256 => Vote) validators; //maps miners tokenId to vote data
+    uint8 validatorCount;
+    uint8 positiveOpeningVoteCount;
+    uint8 negativeOpeningVoteCount;
+    uint8 positiveClosingVoteCount;
+    uint8 negativeClosingVoteCount;
+    uint64 buyCount; // total count of purchases
+    Status status;
+    State state;
+    uint256 totalEarned;
+    bool sellerStakingFeeRefunded;
+    bool withdrawnEarnings;
+    ValidationStatus winningOpeningVote;
+    ValidationStatus winningClosingVote;
+  }
+
+  struct PurchaseData {
+    bool purchased;
+    bool refunded;
+  }
+
+  struct ValidationData {
+    uint256 tokenId;
+    uint256 UID;
+  }
+
+  struct PredictionHistory {
+    uint32 odd;
+    uint256 winnings;
+  }
+
+  struct Profile {
+    bytes32 username;
+    uint256 wonCount;
+    uint256 lostCount;
+    uint256 totalPredictions;
+    uint256 totalOdds;
+    uint256 grossWinnings;
+    PredictionHistory[] last30Predictions;
+    //Remember to divide by constant value (1000)
+  }
+
+  struct PerformanceData {
+    uint256 recentWinRate;
+    int256 recentYield;
+    int256 recentROI;
+    int256 recentProfitablity;
+    uint256 recentAverageOdds;
+    uint256 lifetimeWinRate;
+    int256 lifetimeYield;
+    int256 lifetimeROI;
+    int256 lifetimeProfitability;
+    uint256 lifetimeAverageOdds;
+  }
+
+  uint256 public miningFee; // paid by seller -> to be shared by validators
+  uint256 public sellerStakingFee; // paid by seller, staked per prediction
+  uint256 public minerStakingFee; // paid by miner, staked per validation
+  uint32 public minerPercentage; // % commission for miner, In event of a prediction won
+  uint16 public minWonCountForVerification;
+
+  /**********************************/
+  /*╔═════════════════════════════╗
+    ║          MODIFIERS          ║
+    ╚═════════════════════════════╝*/
+
+  modifier uniqueId(uint256 UID) {
+    require(Predictions[UID].UID == 0, "UID already exists");
+    _;
+  }
+
+  modifier onlySeller(uint256 _UID) {
+    require(msg.sender == Predictions[_UID].seller, "Only prediction seller");
+    _;
+  }
+
+  modifier notSeller(uint256 _UID) {
+    require(msg.sender != Predictions[_UID].seller, "Seller Unauthorized!");
+    _;
+  }
+
+  modifier predictionMeetsMinimumRequirements(
+    uint256 _startTime,
+    uint256 _endTime
+  ) {
+    require(
+      _sellerDoesMeetMinimumRequirements(_startTime, _endTime),
+      "Doesn't meet min requirements"
+    );
+
+    _;
+  }
+
+  modifier hasMinimumBalance(uint256 _amount) {
+    require(Balances[msg.sender] >= _amount, "Not enough balance");
+
+    _;
+  }
+
+  /**Validator opening modifier (Arch 2) *temp */
+
+  modifier predictionEventNotStarted(uint256 _UID) {
+    require(
+      Predictions[_UID].startTime > block.timestamp,
+      "Event already started"
+    );
+    _;
+  }
+
+  modifier predictionEventAlreadyStarted(uint256 _UID) {
+    require(block.timestamp > Predictions[_UID].startTime, "Event not started");
+    _;
+  }
+
+  modifier validatorCountIncomplete(uint256 _UID) {
+    require(
+      Predictions[_UID].validatorCount < MAX_VALIDATORS,
+      "Required validator limit reached"
+    );
+    _;
+  }
+
+  modifier validatorCountComplete(uint256 _UID) {
+    require(
+      Predictions[_UID].validatorCount == MAX_VALIDATORS,
+      "Required validator limit reached"
+    );
+    _;
+  }
+
+  modifier newValidationRequest(uint256 _UID, uint256 _tokenId) {
+    require(
+      Predictions[_UID].validators[_tokenId].opening ==
+        ValidationStatus.Neutral,
+      "Invalid validation request"
+    );
+    _;
+  }
+
+  modifier predictionActive(uint256 _UID) {
+    require(
+      Predictions[_UID].state == State.Active,
+      "Prediction currently inactive"
+    );
+    _;
+  }
+
+  modifier notMined(uint256 _UID) {
+    require(Predictions[_UID].validatorCount == 0, "Prediction already mined");
+    _;
+  }
+
+  modifier isNftOwner(uint256 _tokenId) {
+    require(TokenOwner[_tokenId] == msg.sender, "Not NFT Owner");
+    _;
+  }
+
+  modifier predictionClosingOverdue(uint256 _UID) {
+    require(
+      block.timestamp > Predictions[_UID].endTime + (TWENTY_FOUR_HOURS * 3),
+      "Prediction closing not overdue"
+    );
+    _;
+  }
+
+  /**********************************/
+  /*╔═════════════════════════════╗
+    ║             END             ║
+    ║          MODIFIERS          ║
+    ╚═════════════════════════════╝*/
+  /**********************************/
+
+  /** Does new prediction data satisfy all minimum requirements */
+  function _sellerDoesMeetMinimumRequirements(
+    uint256 _starttime,
+    uint256 _endtime
+  ) internal view returns (bool) {
+    if (
+      _starttime < block.timestamp ||
+      _endtime < block.timestamp ||
+      _endtime < _starttime ||
+      _starttime > block.timestamp + TWENTY_FOUR_HOURS ||
+      (_endtime - _starttime) > (TWENTY_FOUR_HOURS * 2)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /*╔══════════════════════════════╗
+    ║  TRANSFER NFT TO CONTRACT    ║
+    ╚══════════════════════════════╝*/
+  function _transferNftToContract(uint256 _tokenId) internal {
+    if (IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender) {
+      IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
+        msg.sender,
+        address(this),
+        _tokenId
+      );
+      require(
+        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
+        "nft transfer failed"
+      );
+    } else {
+      require(
+        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
+        "Seller doesn't own NFT"
+      );
+    }
+
+    TokenOwner[_tokenId] = msg.sender;
+  }
+
+  function _withdrawNFT(uint256 _tokenId) internal {
+    require(TokenOwner[_tokenId] == msg.sender, "Not NFT Owner");
+    address _nftRecipient = TokenOwner[_tokenId];
+    require(_nftRecipient != address(0), "Zero address");
+    IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
+      address(this),
+      _nftRecipient,
+      _tokenId
+    );
+    require(
+      IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender,
+      "nft transfer failed"
+    );
+    TokenOwner[_tokenId] = address(0);
+  }
+
+  function lockFunds(address _user, uint256 _amount) internal {
+    require(_user != address(0), "Cannot specify 0 address");
+    LockedFunds[_user].amount += _amount;
+    LockedFunds[_user].lastPushDate += block.timestamp;
+    LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
+    LockedFunds[_user].totalInstances += 1;
+  }
+}
