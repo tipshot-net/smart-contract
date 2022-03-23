@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
+import "./Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-abstract contract Base {
-  /**
-   maps unique id of prediction in the centralized server
-   to each contract struct record.
-    */
+abstract contract Base is Ownable {
+  // ========== STATE VARIABLES ========== //
+
+  //maps the generated UID to the prediction details
   mapping(uint256 => PredictionData) internal Predictions;
 
   mapping(address => uint256) public Balances;
@@ -15,23 +15,23 @@ abstract contract Base {
 
   address public NFT_CONTRACT_ADDRESS;
 
-  uint256 internal constant SIXTY_PERCENT = 3;
+  uint8 internal constant SIXTY_PERCENT = 3;
 
-  uint256 internal constant EIGHTY_PERCENT = 4;
+  uint8 internal constant EIGHTY_PERCENT = 4;
 
-  uint256 internal constant MAX_VALIDATORS = 5;
+  uint8 internal constant MAX_VALIDATORS = 5;
 
-  uint256 internal constant TO_PERCENTAGE = 100;
+  uint8 internal constant TO_PERCENTAGE = 100;
 
-  uint256 internal constant BANK_ROLL = 1000;
+  uint16 internal constant BANK_ROLL = 1000;
 
-  uint256 internal constant CONSTANT_VALUE_MULTIPLIER = 1000;
+  uint16 internal constant CONSTANT_VALUE_MULTIPLIER = 1000;
 
-  uint256 internal constant SIX_HOURS = 21600;
+  uint16 internal constant SIX_HOURS = 21600;
 
-  uint256 internal constant TWELVE_HOURS = 43200;
+  uint16 internal constant TWELVE_HOURS = 43200;
 
-  uint256 internal constant TWENTY_FOUR_HOURS = 86400;
+  uint32 internal constant TWENTY_FOUR_HOURS = 86400;
 
   mapping(address => uint256[]) public BoughtPredictions;
 
@@ -94,10 +94,10 @@ abstract contract Base {
   }
 
   struct PredictionData {
-    uint256 UID; // reference to database prediction record
+    uint256 UID; // generated ID referencing to database prediction record
     address seller;
     uint256 startTime; //start time of first predicted event
-    uint256 endTime; //start time of last predicted event
+    uint256 endTime; //end time of last predicted event
     uint16 odd;
     uint256 price;
     address[] buyersList;
@@ -142,10 +142,10 @@ abstract contract Base {
     uint256 totalOdds;
     uint256 grossWinnings;
     PredictionHistory[] last30Predictions;
-    //Remember to divide by constant value (1000)
   }
 
   struct PerformanceData {
+    //Remember to divide by constant value (1000)
     uint256 recentWinRate;
     int256 recentYield;
     int256 recentROI;
@@ -161,8 +161,8 @@ abstract contract Base {
   uint256 public miningFee; // paid by seller -> to be shared by validators
   uint256 public sellerStakingFee; // paid by seller, staked per prediction
   uint256 public minerStakingFee; // paid by miner, staked per validation
-  uint32 public minerPercentage; // % commission for miner, In event of a prediction won
-  uint16 public minWonCountForVerification;
+  uint32 public minerPercentage; // %  for miner, In event of a prediction won
+  uint16 public minWonCountForVerification; // minimum number of won predictions to be verified
 
   /**********************************/
   /*╔═════════════════════════════╗
@@ -201,8 +201,6 @@ abstract contract Base {
 
     _;
   }
-
-  /**Validator opening modifier (Arch 2) *temp */
 
   modifier predictionEventNotStarted(uint256 _UID) {
     require(
@@ -296,6 +294,7 @@ abstract contract Base {
   /*╔══════════════════════════════╗
     ║  TRANSFER NFT TO CONTRACT    ║
     ╚══════════════════════════════╝*/
+
   function _transferNftToContract(uint256 _tokenId) internal {
     if (IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender) {
       IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
@@ -317,10 +316,16 @@ abstract contract Base {
     TokenOwner[_tokenId] = msg.sender;
   }
 
-  function _withdrawNFT(uint256 _tokenId) internal {
-    require(TokenOwner[_tokenId] == msg.sender, "Not NFT Owner");
+  /*╔════════════════════════════════════╗
+    ║ RETURN NFT FROM CONTRACT TO OWNER  ║
+    ╚════════════════════════════════════╝*/
+
+  function _withdrawNFT(uint256 _tokenId)
+    internal
+    isNftOwner(_tokenId)
+    notZeroAddress(TokenOwner[_tokenId])
+  {
     address _nftRecipient = TokenOwner[_tokenId];
-    require(_nftRecipient != address(0), "Zero address");
     IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
       address(this),
       _nftRecipient,
@@ -333,11 +338,29 @@ abstract contract Base {
     TokenOwner[_tokenId] = address(0);
   }
 
-  function lockFunds(address _user, uint256 _amount) internal {
-    require(_user != address(0), "Cannot specify 0 address");
+  function lockFunds(address _user, uint256 _amount)
+    internal
+    notZeroAddress(_user)
+  {
     LockedFunds[_user].amount += _amount;
     LockedFunds[_user].lastPushDate += block.timestamp;
     LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
     LockedFunds[_user].totalInstances += 1;
+  }
+
+  function setMiningFee(uint256 amount) external onlyOwner {
+    miningFee = amount;
+  }
+
+  function setSellerStakingFee(uint256 amount) external onlyOwner {
+    sellerStakingFee = amount;
+  }
+
+  function setMinerStakingFee(uint256 amount) external onlyOwner {
+    minerStakingFee = amount;
+  }
+
+  function setMinerPercentage(uint32 percent) external onlyOwner {
+    minerPercentage = percent;
   }
 }

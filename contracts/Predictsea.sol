@@ -11,12 +11,10 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // @title PredictSea {Blockchain powered sport prediction marketplace}
 
-contract Predictsea is Base, IERC721Receiver, Ownable, Seller, Miner, Buyer {
+contract Predictsea is Base, IERC721Receiver, Seller, Miner, Buyer {
   /*╔═════════════════════════════╗
     ║           EVENTS            ║
     ╚═════════════════════════════╝*/
-
-  /**********************************/
 
   event PredictionCreated(
     address indexed sender,
@@ -27,8 +25,6 @@ contract Predictsea is Base, IERC721Receiver, Ownable, Seller, Miner, Buyer {
     uint256 price
   );
   event DepositCreated(address sender, uint256 value);
-
-  /**Validator opening events (Arch 2) *temp */
 
   event ValidationRequested(
     uint256 indexed UID,
@@ -590,6 +586,8 @@ contract Predictsea is Base, IERC721Receiver, Ownable, Seller, Miner, Buyer {
     Balances[Predictions[_UID].seller] += sellerStakingFee;
     emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
   }
+
+  
 
   function onERC721Received(
     address,

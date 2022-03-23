@@ -46,15 +46,12 @@ abstract contract Miner is Base {
   function _setUpClosingVote(uint256 _UID, uint256 _tokenId)
     internal
     view
+    isNftOwner(_tokenId)
     returns (Vote storage)
   {
-    require(TokenOwner[_tokenId] == msg.sender, "Not NFT Owner");
     require(
-      Predictions[_UID].validators[_tokenId].opening ==
-        ValidationStatus.Positive ||
-        Predictions[_UID].validators[_tokenId].opening ==
-        ValidationStatus.Negative,
-      "Vote already cast!"
+      Predictions[_UID].validators[_tokenId].miner == msg.sender,
+      "Not assigned to miner"
     );
     require(
       Predictions[_UID].validators[_tokenId].closing ==

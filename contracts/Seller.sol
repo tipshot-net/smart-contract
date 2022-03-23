@@ -156,23 +156,21 @@ abstract contract Seller is Base {
   function _getLifetimeYield(address _tipster) internal view returns (int256) {
     int256 _grossWinings = int256(UserProfile[_tipster].grossWinnings);
     int256 _capitalEmployed = int256(UserProfile[_tipster].totalPredictions) *
-      int256(BANK_ROLL);
+      int16(BANK_ROLL);
 
     return
-      (((_grossWinings - _capitalEmployed) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) / _capitalEmployed) *
-      int256(TO_PERCENTAGE);
+      (((_grossWinings - _capitalEmployed) * int16(CONSTANT_VALUE_MULTIPLIER)) /
+        _capitalEmployed) * int8(TO_PERCENTAGE);
   }
 
   function _getLifetimeROI(address _tipster) internal view returns (int256) {
     int256 _grossWinings = int256(UserProfile[_tipster].grossWinnings);
     int256 _capitalEmployed = int256(UserProfile[_tipster].totalPredictions) *
-      int256(BANK_ROLL);
+      int16(BANK_ROLL);
 
     return
-      (((_grossWinings - _capitalEmployed) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) / int256(BANK_ROLL)) *
-      int256(TO_PERCENTAGE);
+      (((_grossWinings - _capitalEmployed) * int16(CONSTANT_VALUE_MULTIPLIER)) /
+        int16(BANK_ROLL)) * int8(TO_PERCENTAGE);
   }
 
   function _getLifetimeProfitability(address _tipster)
@@ -182,14 +180,13 @@ abstract contract Seller is Base {
   {
     int256 _grossWinings = int256(UserProfile[_tipster].grossWinnings);
     int256 _capitalEmployed = int256(UserProfile[_tipster].totalPredictions) *
-      int256(BANK_ROLL);
-    int256 _moneyLost = int256(BANK_ROLL) *
+      int16(BANK_ROLL);
+    int256 _moneyLost = int16(BANK_ROLL) *
       int256(UserProfile[_tipster].lostCount);
 
     return
-      (((_grossWinings - _capitalEmployed) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) / _moneyLost) *
-      int256(TO_PERCENTAGE);
+      (((_grossWinings - _capitalEmployed) * int16(CONSTANT_VALUE_MULTIPLIER)) /
+        _moneyLost) * int8(TO_PERCENTAGE);
   }
 
   function _getLifetimeAverageOdds(address _tipster)
@@ -237,8 +234,8 @@ abstract contract Seller is Base {
     uint256 _capitalEmployed = listLength * BANK_ROLL;
     return
       ((int256(_grossWinnings) - int256(_capitalEmployed)) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) /
-      (int256(_capitalEmployed) * int256(TO_PERCENTAGE));
+        int16(CONSTANT_VALUE_MULTIPLIER)) /
+      (int256(_capitalEmployed) * int8(TO_PERCENTAGE));
   }
 
   function _getRecentROI(uint256 _grossWinnings, uint256 listLength)
@@ -250,8 +247,8 @@ abstract contract Seller is Base {
 
     return
       (((int256(_grossWinnings) - int256(_capitalEmployed)) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) / int256(BANK_ROLL)) *
-      int256(TO_PERCENTAGE);
+        int16(CONSTANT_VALUE_MULTIPLIER)) / int16(BANK_ROLL)) *
+      int8(TO_PERCENTAGE);
   }
 
   function _getRecentProfitability(
@@ -263,8 +260,8 @@ abstract contract Seller is Base {
 
     return
       (((int256(_grossWinnings) - int256(_capitalEmployed)) *
-        int256(CONSTANT_VALUE_MULTIPLIER)) / int256(_moneyLost)) *
-      int256(TO_PERCENTAGE);
+        int16(CONSTANT_VALUE_MULTIPLIER)) / int256(_moneyLost)) *
+      int8(TO_PERCENTAGE);
   }
 
   function _getRecentAverageOdds(uint256 _totalOdds, uint256 listLength)
