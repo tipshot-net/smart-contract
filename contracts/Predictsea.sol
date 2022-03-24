@@ -2,8 +2,6 @@
 pragma solidity ^0.8;
 
 import "hardhat/console.sol";
-import "./Ownable.sol";
-import "./Base.sol";
 import "./Seller.sol";
 import "./Miner.sol";
 import "./Buyer.sol";
@@ -11,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // @title PredictSea {Blockchain powered sport prediction marketplace}
 
-contract Predictsea is Base, IERC721Receiver, Seller, Miner, Buyer {
+contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   /*╔═════════════════════════════╗
     ║           EVENTS            ║
     ╚═════════════════════════════╝*/
@@ -102,6 +100,9 @@ contract Predictsea is Base, IERC721Receiver, Seller, Miner, Buyer {
     minWonCountForVerification = _minWonCountForVerification;
   }
 
+
+ //Seller creates prediction and pays staking fee with wallet balance (non-payable)
+
   function createPredictionWithWallet(
     uint256 _UID,
     uint256 _startTime,
@@ -124,6 +125,8 @@ contract Predictsea is Base, IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
+  // Seller creates prediction and pays staking fee by sending required wei in transaction (payable)
+  
   function createPrediction(
     uint256 _UID,
     uint256 _startTime,
@@ -585,6 +588,22 @@ contract Predictsea is Base, IERC721Receiver, Seller, Miner, Buyer {
     Predictions[_UID].sellerStakingFeeRefunded = true;
     Balances[Predictions[_UID].seller] += sellerStakingFee;
     emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
+  }
+
+  function setMiningFee(uint256 amount) external onlyOwner {
+    miningFee = amount;
+  }
+
+  function setSellerStakingFee(uint256 amount) external onlyOwner {
+    sellerStakingFee = amount;
+  }
+
+  function setMinerStakingFee(uint256 amount) external onlyOwner {
+    minerStakingFee = amount;
+  }
+
+  function setMinerPercentage(uint32 percent) external onlyOwner {
+    minerPercentage = percent;
   }
 
   

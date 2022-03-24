@@ -5,6 +5,14 @@ pragma solidity ^0.8.0;
 import "./Base.sol";
 
 abstract contract Seller is Base {
+
+    /// @dev Sets up parameters applicable to wallet and direct-payment prediction upload
+    /// @param _UID Unique identifier referencing the DB record of the prediction data
+    /// @param _startTime Timestamp of the kickoff time of the first prediction event
+    /// @param _endTime Timestamp of the proposed end of the last prediction event
+    /// @param _odd Total prediction odd (multipled by 100 -> to keep in whole number format)
+    /// @param _price Selling price of prediction in wei
+
   function _setupPrediction(
     uint256 _UID,
     uint256 _startTime,
@@ -26,6 +34,12 @@ abstract contract Seller is Base {
     OwnedPredictions[msg.sender].push(_UID);
     ActiveSoldPredictions[_UID][msg.sender] = true;
   }
+
+
+
+    ///@dev Calculate and updates sellers performance records
+    ///@param _prediction Instance of the prediction data
+    ///@param _predictionWon Outcome of the prediction (Win/Lose)
 
   function _updateSellerProfile(
     PredictionData storage _prediction,
@@ -91,6 +105,12 @@ abstract contract Seller is Base {
     Performance[_prediction.seller]
       .lifetimeAverageOdds = _getLifetimeAverageOdds(_prediction.seller);
   }
+      // (POV -> Positive Opening Validation)
+
+
+     ///@notice POV > 1  & POV < 3  
+    ///@dev Refund seller staking fee -> prediction doesn't meet minimum POV (60%) 
+    ///@param _prediction Instance of the prediction data
 
   function _refundSellerStakingFee(PredictionData storage _prediction)
     internal
@@ -102,6 +122,9 @@ abstract contract Seller is Base {
       Balances[_prediction.seller] += sellerStakingFee;
     }
   }
+
+  ///@dev Sets Prediction outcome (Win/Loss)
+  ///@param _prediction Instance of the prediction data
 
   function _setPredictionOutcome(PredictionData storage _prediction) internal {
     if (
@@ -118,6 +141,9 @@ abstract contract Seller is Base {
       _prediction.status = Status.Inconclusive;
     }
   }
+  ///@dev Only the prediction seller can close the prediction to conclude the transaction
+  ///@param _prediction Instance of the prediction data
+  ///@param _sellerVote Only to be used if there's a tie between the PCV & NCV
 
   function _setUpSellerClosing(
     PredictionData storage _prediction,
@@ -143,8 +169,12 @@ abstract contract Seller is Base {
     _updateSellerProfile(_prediction, _outcome);
   }
 
+  ///@dev Calculate the percentage winrate based on sellers entire prediction sale history
+  ///@param _tipster Address of seller -> tipster
+  ///@return Winrate (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
   function _getLifetimeWinRate(address _tipster)
-    internal
+    private
     view
     returns (uint256)
   {
@@ -153,7 +183,12 @@ abstract contract Seller is Base {
         UserProfile[_tipster].totalPredictions) * TO_PERCENTAGE;
   }
 
-  function _getLifetimeYield(address _tipster) internal view returns (int256) {
+
+  ///@dev Calculate the lifetime yield based on sellers entire prediction sale history
+  ///@param _tipster Address of seller -> tipster
+  ///@return Yield (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
+  function _getLifetimeYield(address _tipster) private view returns (int256) {
     int256 _grossWinings = int256(UserProfile[_tipster].grossWinnings);
     int256 _capitalEmployed = int256(UserProfile[_tipster].totalPredictions) *
       int16(BANK_ROLL);
@@ -163,7 +198,11 @@ abstract contract Seller is Base {
         _capitalEmployed) * int8(TO_PERCENTAGE);
   }
 
-  function _getLifetimeROI(address _tipster) internal view returns (int256) {
+   ///@dev Calculate the lifetime ROI based on sellers entire prediction sale history
+  ///@param _tipster Address of seller -> tipster
+  ///@return Lifetime ROI (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
+  function _getLifetimeROI(address _tipster) private view returns (int256) {
     int256 _grossWinings = int256(UserProfile[_tipster].grossWinnings);
     int256 _capitalEmployed = int256(UserProfile[_tipster].totalPredictions) *
       int16(BANK_ROLL);
@@ -173,8 +212,13 @@ abstract contract Seller is Base {
         int16(BANK_ROLL)) * int8(TO_PERCENTAGE);
   }
 
+
+  ///@dev Calculate the lifetime Profitability based on sellers entire prediction sale history
+  ///@param _tipster Address of seller -> tipster
+  ///@return Lifetime profitability (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
   function _getLifetimeProfitability(address _tipster)
-    internal
+    private
     view
     returns (int256)
   {
@@ -189,8 +233,12 @@ abstract contract Seller is Base {
         _moneyLost) * int8(TO_PERCENTAGE);
   }
 
+  ///@dev Calculate the lifetime average odds based on sellers entire prediction sale history
+  ///@param _tipster Address of seller -> tipster
+  ///@return Lifetime average odds (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
   function _getLifetimeAverageOdds(address _tipster)
-    internal
+    private
     view
     returns (uint256)
   {
@@ -199,11 +247,17 @@ abstract contract Seller is Base {
       UserProfile[_tipster].totalPredictions;
   }
 
+
+  ///@dev Updates the array-list of the tipster last 30 predictions data
+  ///@param _tipster Address of seller -> tipster
+  ///@param _odd Odd of prediction
+  ///@param _won Outcome of prediction (Win/Loss)
+  
   function _addToRecentPredictionsList(
     address _tipster,
     uint32 _odd,
     bool _won
-  ) internal {
+  ) private {
     PredictionHistory[] storage _list = UserProfile[_tipster].last30Predictions;
     uint256 _winnings = _won ? (uint256(BANK_ROLL) * _odd) : 0;
     if (_list.length < 30) {
@@ -217,33 +271,48 @@ abstract contract Seller is Base {
     }
   }
 
-  function _getRecentWinRate(uint256 _wonCount, uint256 listLength)
-    internal
+  ///@dev Calculate the tipster percentage winrate based on last 30 predictions data
+  ///@param _wonCount Total wins in the last 30 concluded predictions
+  ///@param _listLength Size of recent predictions array (max => 30)
+  ///@return Recent winrate (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
+  function _getRecentWinRate(uint256 _wonCount, uint256 _listLength)
+    private
     pure
     returns (uint256)
   {
     return
-      ((_wonCount * CONSTANT_VALUE_MULTIPLIER) / listLength) * TO_PERCENTAGE;
+      ((_wonCount * CONSTANT_VALUE_MULTIPLIER) / _listLength) * TO_PERCENTAGE;
   }
 
-  function _getRecentYield(uint256 _grossWinnings, uint256 listLength)
-    internal
+  ///@dev Calculate the tipster recent yield based on last 30 predictions data
+  ///@param _grossWinnings Total winnings of recent predictions
+  ///@param _listLength Size of recent predictions array (max => 30)
+  ///@return Recent yield (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
+  function _getRecentYield(uint256 _grossWinnings, uint256 _listLength)
+    private
     pure
     returns (int256)
   {
-    uint256 _capitalEmployed = listLength * BANK_ROLL;
+    uint256 _capitalEmployed = _listLength * BANK_ROLL;
     return
       ((int256(_grossWinnings) - int256(_capitalEmployed)) *
         int16(CONSTANT_VALUE_MULTIPLIER)) /
       (int256(_capitalEmployed) * int8(TO_PERCENTAGE));
   }
 
-  function _getRecentROI(uint256 _grossWinnings, uint256 listLength)
-    internal
+   ///@dev Calculate the tipster recent ROI based on last 30 predictions data
+  ///@param _grossWinnings Total winnings of recent predictions
+  ///@param _listLength Size of recent predictions array (max => 30)
+  ///@return Recent ROI (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
+  function _getRecentROI(uint256 _grossWinnings, uint256 _listLength)
+    private
     pure
     returns (int256)
   {
-    uint256 _capitalEmployed = listLength * BANK_ROLL;
+    uint256 _capitalEmployed = _listLength * BANK_ROLL;
 
     return
       (((int256(_grossWinnings) - int256(_capitalEmployed)) *
@@ -251,12 +320,18 @@ abstract contract Seller is Base {
       int8(TO_PERCENTAGE);
   }
 
+   ///@dev Calculate the tipster recent profitability based on last 30 predictions data
+  ///@param _grossWinnings Total winnings of recent predictions
+  ///@param _moneyLost Total losses of recent predictions
+  ///@param _listLength Size of recent predictions array (max => 30)
+  ///@return Recent profitability (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
+
   function _getRecentProfitability(
     uint256 _grossWinnings,
     uint256 _moneyLost,
-    uint256 listLength
-  ) internal pure returns (int256) {
-    uint256 _capitalEmployed = listLength * BANK_ROLL;
+    uint256 _listLength
+  ) private pure returns (int256) {
+    uint256 _capitalEmployed = _listLength * BANK_ROLL;
 
     return
       (((int256(_grossWinnings) - int256(_capitalEmployed)) *
@@ -264,16 +339,25 @@ abstract contract Seller is Base {
       int8(TO_PERCENTAGE);
   }
 
-  function _getRecentAverageOdds(uint256 _totalOdds, uint256 listLength)
-    internal
+  ///@dev Calculate the tipster recent average odds based on last 30 predictions data
+  ///@param _totalOdds Total odds of recent predictions
+  ///@param _listLength Size of recent predictions array (max => 30)
+  ///@return Recent odds -> multiplied by 1000 to preserve floating point numbers
+
+  function _getRecentAverageOdds(uint256 _totalOdds, uint256 _listLength)
+    private
     pure
     returns (uint256)
   {
-    return (_totalOdds * CONSTANT_VALUE_MULTIPLIER) / listLength;
+    return (_totalOdds * CONSTANT_VALUE_MULTIPLIER) / _listLength;
   }
 
+  ///@dev Retrieve tipster recent predictions data (max => 30)
+  ///@param _tipster Address of seller -> tipster
+  ///@return _wonCount _grossWinnings _moneyLost _totalOdds
+
   function _getRecentPredictionsData(address _tipster)
-    internal
+    private
     view
     returns (
       uint256 _wonCount,
@@ -295,6 +379,8 @@ abstract contract Seller is Base {
     return (_wonCount, _grossWinnings, _moneyLost, _totalOdds);
   }
 
+
+
   function createPredictionWithWallet(
     uint256 _UID,
     uint256 _startTime,
@@ -302,6 +388,7 @@ abstract contract Seller is Base {
     uint16 _odd,
     uint256 _price
   ) external virtual;
+
 
   function createPrediction(
     uint256 _UID,
@@ -311,6 +398,7 @@ abstract contract Seller is Base {
     uint256 _price
   ) external payable virtual;
 
+    
   function updatePrediction(
     uint256 _UID,
     uint256 _startTime,
