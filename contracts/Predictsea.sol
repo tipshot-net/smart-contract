@@ -100,8 +100,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     minWonCountForVerification = _minWonCountForVerification;
   }
 
-
- //Seller creates prediction and pays staking fee with wallet balance (non-payable)
+  //Seller creates prediction and pays staking fee with wallet balance (non-payable)
 
   function createPredictionWithWallet(
     uint256 _UID,
@@ -126,7 +125,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   }
 
   // Seller creates prediction and pays staking fee by sending required wei in transaction (payable)
-  
+
   function createPrediction(
     uint256 _UID,
     uint256 _startTime,
@@ -605,8 +604,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   function setMinerPercentage(uint32 percent) external onlyOwner {
     minerPercentage = percent;
   }
-
-  
 
   function onERC721Received(
     address,

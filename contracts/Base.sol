@@ -3,8 +3,7 @@ pragma solidity ^0.8;
 import "./Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-///@notice This contract contains all state variables, modifiers and internal functions used by multiple contracts. 
-                 
+///@notice This contract contains all state variables, modifiers and internal functions used by multiple contracts.
 
 abstract contract Base is Ownable {
   // ========== STATE VARIABLES ========== //
@@ -349,5 +348,5 @@ abstract contract Base is Ownable {
     LockedFunds[_user].lastPushDate += block.timestamp;
     LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
     LockedFunds[_user].totalInstances += 1;
-  }  
+  }
 }
