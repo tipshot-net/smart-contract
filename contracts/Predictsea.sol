@@ -7,7 +7,7 @@ import "./Miner.sol";
 import "./Buyer.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-// @title PredictSea {Blockchain powered sport prediction marketplace}
+/// @title PredictSea {Blockchain powered sport prediction marketplace}
 
 contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   /*╔═════════════════════════════╗

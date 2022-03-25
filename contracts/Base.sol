@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 abstract contract Base is Ownable {
   // ========== STATE VARIABLES ========== //
 
-  //maps the generated UID to the prediction details
+  ///@notice maps the generated UID to the prediction details
   mapping(uint256 => PredictionData) internal Predictions;
 
   mapping(address => uint256) public Balances;
@@ -51,8 +51,7 @@ abstract contract Base is Ownable {
 
   mapping(address => PerformanceData) public Performance;
 
-  /** users can have thier accounts verified by 
-  purchasing a unique username mapped to thier address */
+  /// @notice maps username to address -> verified sellers only
   mapping(bytes32 => address) public UsernameService;
 
   mapping(address => Profile) public UserProfile;
@@ -275,78 +274,25 @@ abstract contract Base is Ownable {
     ╚═════════════════════════════╝*/
   /**********************************/
 
-  /** Does new prediction data satisfy all minimum requirements */
+  ///@dev checks if prediction data meets requirements
+  /// @param _startTime Timestamp of the kickoff time of the first prediction event
+  /// @param _endTime Timestamp of the proposed end of the last prediction event
+  ///@return bool
+
   function _sellerDoesMeetMinimumRequirements(
-    uint256 _starttime,
-    uint256 _endtime
+    uint256 _startTime,
+    uint256 _endTime
   ) internal view returns (bool) {
     if (
-      _starttime < block.timestamp ||
-      _endtime < block.timestamp ||
-      _endtime < _starttime ||
-      _starttime > block.timestamp + TWENTY_FOUR_HOURS ||
-      (_endtime - _starttime) > (TWENTY_FOUR_HOURS * 2)
+      _startTime < block.timestamp ||
+      _endTime < block.timestamp ||
+      _endTime < _startTime ||
+      _startTime > block.timestamp + TWENTY_FOUR_HOURS ||
+      (_endTime - _startTime) > (TWENTY_FOUR_HOURS * 2)
     ) {
       return false;
     }
 
     return true;
-  }
-
-  /*╔══════════════════════════════╗
-    ║  TRANSFER NFT TO CONTRACT    ║
-    ╚══════════════════════════════╝*/
-
-  function _transferNftToContract(uint256 _tokenId) internal {
-    if (IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender) {
-      IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
-        msg.sender,
-        address(this),
-        _tokenId
-      );
-      require(
-        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
-        "nft transfer failed"
-      );
-    } else {
-      require(
-        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
-        "Seller doesn't own NFT"
-      );
-    }
-
-    TokenOwner[_tokenId] = msg.sender;
-  }
-
-  /*╔════════════════════════════════════╗
-    ║ RETURN NFT FROM CONTRACT TO OWNER  ║
-    ╚════════════════════════════════════╝*/
-
-  function _withdrawNFT(uint256 _tokenId)
-    internal
-    isNftOwner(_tokenId)
-    notZeroAddress(TokenOwner[_tokenId])
-  {
-    address _nftRecipient = TokenOwner[_tokenId];
-    IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
-      address(this),
-      _nftRecipient,
-      _tokenId
-    );
-    require(
-      IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender,
-      "nft transfer failed"
-    );
-    TokenOwner[_tokenId] = address(0);
-  }
-
-  function lockFunds(address _user, uint256 _amount)
-    internal
-    notZeroAddress(_user)
-  {
-    LockedFunds[_user].amount += _amount;
-    LockedFunds[_user].lastPushDate += block.timestamp;
-    LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
-    LockedFunds[_user].totalInstances += 1;
   }
 }

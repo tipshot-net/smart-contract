@@ -6,6 +6,10 @@ pragma solidity ^0.8;
 import "./Base.sol";
 
 abstract contract Miner is Base {
+  ///@dev Miners use thier NFT (_tokenId) to request to validate a prediction (_UID)
+  ///@param _tokenId NFT token id
+  ///@param _UID ID of requested prediction
+
   function _setUpValidationRequest(uint256 _tokenId, uint256 _UID)
     internal
     validatorCountIncomplete(_UID)
@@ -25,11 +29,63 @@ abstract contract Miner is Base {
     ActiveValidations[_UID][msg.sender] = true;
   }
 
+  /*╔══════════════════════════════╗
+     ║  TRANSFER NFT TO CONTRACT    ║
+     ╚══════════════════════════════╝*/
+
+  function _transferNftToContract(uint256 _tokenId) internal {
+    if (IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender) {
+      IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
+        msg.sender,
+        address(this),
+        _tokenId
+      );
+      require(
+        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
+        "nft transfer failed"
+      );
+    } else {
+      require(
+        IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
+        "Seller doesn't own NFT"
+      );
+    }
+
+    TokenOwner[_tokenId] = msg.sender;
+  }
+
+  /*╔════════════════════════════════════╗
+    ║ RETURN NFT FROM CONTRACT TO OWNER  ║
+    ╚════════════════════════════════════╝*/
+
+  function _withdrawNFT(uint256 _tokenId)
+    internal
+    isNftOwner(_tokenId)
+    notZeroAddress(TokenOwner[_tokenId])
+  {
+    address _nftRecipient = TokenOwner[_tokenId];
+    IERC721(NFT_CONTRACT_ADDRESS).safeTransferFrom(
+      address(this),
+      _nftRecipient,
+      _tokenId
+    );
+    require(
+      IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == msg.sender,
+      "nft transfer failed"
+    );
+    TokenOwner[_tokenId] = address(0);
+  }
+
+  ///@dev Checks if all requirements for a miner to cast opening vote on prediction are satisfied
+  ///@param _tokenId NFT token id
+  ///@param _UID ID of requested prediction
+  ///@return _vote -> miners opening vote details
+
   function _setUpOpeningVote(uint256 _UID, uint256 _tokenId)
     internal
     view
     isNftOwner(_UID)
-    returns (Vote storage)
+    returns (Vote storage _vote)
   {
     require(
       Predictions[_UID].validators[_tokenId].opening ==
@@ -43,11 +99,16 @@ abstract contract Miner is Base {
     return Predictions[_UID].validators[_tokenId];
   }
 
+  ///@dev Checks if all requirements for a miner to cast closing vote on prediction are satisfied
+  ///@param _tokenId NFT token id
+  ///@param _UID ID of requested prediction
+  ///@return _vote -> miners closing vote details
+
   function _setUpClosingVote(uint256 _UID, uint256 _tokenId)
     internal
     view
     isNftOwner(_tokenId)
-    returns (Vote storage)
+    returns (Vote storage _vote)
   {
     require(
       Predictions[_UID].validators[_tokenId].miner == msg.sender,
@@ -66,6 +127,10 @@ abstract contract Miner is Base {
     );
     return Predictions[_UID].validators[_tokenId];
   }
+
+  ///@dev Calculate majority opening vote
+  ///@param _UID Prediction ID
+  ///@return status -> majority opening consensus
 
   function _getWinningOpeningVote(uint256 _UID)
     internal
@@ -87,6 +152,10 @@ abstract contract Miner is Base {
     }
   }
 
+  ///@dev Calculate majority closing vote
+  ///@param _UID Prediction ID
+  ///@return status -> majority closing consensus
+
   function _getWinningClosingVote(uint256 _UID)
     internal
     view
@@ -107,6 +176,12 @@ abstract contract Miner is Base {
     }
   }
 
+  ///@dev Refund miner staking fee based on the conditions that the opening and
+  ///closing vote matches majority consensus, else lock staking fee
+  ///@param _prediction Predicition data
+  ///@param _winningOpeningVote majority prediction opening vote consensus
+  ///@param _winningClosingVote majority prediction closing vote consensus
+
   function _refundMinerStakingFee(
     PredictionData storage _prediction,
     ValidationStatus _winningOpeningVote,
@@ -126,21 +201,35 @@ abstract contract Miner is Base {
     }
   }
 
+  ///@dev View function to get the a miner's opening vote for a particular prediction
+  ///@param _UID Prediction ID
+  ///@param _tokenId NFT token ID
+  ///@return _openingVote -> miner's prediction opening vote
+
   function _getMinerOpeningPredictionVote(uint256 _UID, uint256 _tokenId)
     internal
     view
-    returns (ValidationStatus)
+    returns (ValidationStatus _openingVote)
   {
     return Predictions[_UID].validators[_tokenId].opening;
   }
 
+  ///@dev View function to get the a miner's closing vote for a particular prediction
+  ///@param _UID Prediction ID
+  ///@param _tokenId NFT token ID
+  ///@return _closingVote -> miner's prediction closing vote
+
   function _getMinerClosingPredictionVote(uint256 _UID, uint256 _tokenId)
     internal
     view
-    returns (ValidationStatus)
+    returns (ValidationStatus _closingVote)
   {
     return Predictions[_UID].validators[_tokenId].closing;
   }
+
+  ///@dev Return NFT and staking fee to miner
+  ///@param _UID Prediction ID
+  ///@param _tokenId NFT token ID
 
   function _returnNftAndStakingFee(uint256 _UID, uint256 _tokenId) internal {
     require(
@@ -154,6 +243,20 @@ abstract contract Miner is Base {
     Predictions[_UID].validators[_tokenId].stakingFeeRefunded = true;
     Balances[TokenOwner[_tokenId]] += minerStakingFee;
     _withdrawNFT(_tokenId);
+  }
+
+  ///@dev Lock some amount of wei in the contract, to be released in a future date
+  ///@param _user Owner of locked funds
+  ///@param _amount Amount to be locked (in wei)
+
+  function lockFunds(address _user, uint256 _amount)
+    internal
+    notZeroAddress(_user)
+  {
+    LockedFunds[_user].amount += _amount;
+    LockedFunds[_user].lastPushDate += block.timestamp;
+    LockedFunds[_user].releaseDate += (TWENTY_FOUR_HOURS * 30);
+    LockedFunds[_user].totalInstances += 1;
   }
 
   function requestValidationWithWallet(

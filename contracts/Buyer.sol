@@ -6,6 +6,9 @@ pragma solidity ^0.8;
 import "./Base.sol";
 
 abstract contract Buyer is Base {
+  /// @dev Sets up parameters applicable to wallet and direct-payment prediction purchase
+  /// @param _UID Prediction ID
+
   function _setUpPurchase(uint256 _UID)
     internal
     predictionEventNotStarted(_UID)
@@ -18,6 +21,9 @@ abstract contract Buyer is Base {
     BoughtPredictions[msg.sender].push(_UID);
     ActiveBoughtPredictions[_UID][msg.sender] = true;
   }
+
+  /// @dev Refunds prediction purchase fee back to buyers wallet.
+  /// @param _UID prediction ID
 
   function _returnBuyerPurchaseFee(uint256 _UID) internal {
     require(
