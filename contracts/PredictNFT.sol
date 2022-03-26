@@ -23,9 +23,15 @@ contract PredictNFT is ERC721URIStorage, Ownable {
   event UserWithdrawal(address user, uint256 amount, uint256 balance);
   event ManagerWithdrawal(address recipient, uint256 amount, uint256 balance);
 
+  /// @notice `owner` defaults to msg.sender on construction.
   constructor() ERC721("PredictSea", "PST") {
     owner = payable(msg.sender);
+    emit OwnershipTransferred(msg.sender);
   }
+
+  ///@dev Whitelisted addresses can mint token after which the address is delisted
+  ///@param miner Whitelisted address
+  ///@param tokenURI Associated metadata URI of the token
 
   function mintToken(address miner, string memory tokenURI)
     public
@@ -41,15 +47,28 @@ contract PredictNFT is ERC721URIStorage, Ownable {
     return newTokenId;
   }
 
+  ///@dev Sets new token selling price
+  ///@param _price New token price
+
   function setSellingPrice(uint256 _price) external onlyOwner {
     sellingPrice = _price;
     emit NewSellingPrice(_price);
   }
 
+  ///@dev Sets new whitelisting limit
+  ///@param _limit New upper limit for address whitelisting.
+
   function increaseMintLimit(uint256 _limit) external onlyOwner {
     mintLimit += _limit;
     emit MintLimitIncreased(_limit);
   }
+
+  /*************************************************************************
+   * During the whitelisting period, addresses that can call this function *
+   * to be whitelisted, provided the mint limit hasn't been reached and    *
+   * the sender sends the the selling price amount in the transaction      *
+   * whitelisted addresses can then proceed to mint NFT                    *
+   *************************************************************************/
 
   function whitelist() external payable {
     require(totalMinted < mintLimit, "Current limit reached");
@@ -68,6 +87,9 @@ contract PredictNFT is ERC721URIStorage, Ownable {
     emit AddressWhitelisted(msg.sender);
   }
 
+  ///@dev Extra money sent into the contract can be withdrawn by calling this function.
+  ///@param _amount Amount to be withdrawn.
+
   function withdrawFromBalances(uint256 _amount) external {
     require(balances[msg.sender] >= _amount, "Not enough balance");
     balances[msg.sender] -= _amount;
@@ -75,6 +97,10 @@ contract PredictNFT is ERC721URIStorage, Ownable {
     require(sent, "Failed to send Ether");
     emit UserWithdrawal(msg.sender, _amount, balances[msg.sender]);
   }
+
+  ///@dev Only the owner can withdraw money from the contract balance using this method.
+  ///@param _to Recipient for withdrawal
+  ///@param _amount Amount to be withdrawn
 
   function managerWithdrawal(address _to, uint256 _amount) external onlyOwner {
     require(withdrawableAmount >= _amount, "Not enough to withdraw");

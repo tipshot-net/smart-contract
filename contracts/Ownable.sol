@@ -18,6 +18,7 @@ contract Ownable {
   event NewOwnerNominated(address nominee);
   event OwnershipTransferred(address newOwner);
 
+  /// @notice Only allows the `owner` to execute the function.
   modifier onlyOwner() {
     require(msg.sender == owner, "Unauthorized access to contract");
     _;
@@ -50,6 +51,12 @@ contract Ownable {
     emit IsLocked(locked);
   }
 
+  /**
+    /// @notice Transfers ownership to `newOwner`. Either directly or claimable by the new pending owner.
+    /// Can only be invoked by the current `owner`.
+    /// @param _address Address of the new owner.
+   */
+
   function nominateNewOwner(address _address)
     external
     onlyOwner
@@ -59,6 +66,11 @@ contract Ownable {
     nominatedOwner = payable(_address);
     emit NewOwnerNominated(nominatedOwner);
   }
+
+  /**  @notice Needs to be called by `pendingOwner` to claim ownership.
+   * @dev Transfers ownership of the contract to a new account (`nominatedOwner`).
+   * Can only be called by the current owner.
+   */
 
   function transferOwnership() external {
     require(nominatedOwner != address(0), "Nominated owner not set");

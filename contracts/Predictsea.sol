@@ -474,7 +474,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     return TokenOwner[_tokenId];
   }
 
-  function withdrawFunds(uint256 _amount) external {
+  function withdrawFunds(uint256 _amount) external isOpen {
     require(Balances[msg.sender] >= _amount, "Not enough balance");
     Balances[msg.sender] -= _amount;
     // attempt to send the funds to the recipient
