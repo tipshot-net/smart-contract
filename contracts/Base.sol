@@ -156,14 +156,15 @@ abstract contract Base is Ownable {
     int256 lifetimeYield;
     int256 lifetimeROI;
     int256 lifetimeProfitability;
-    uint256 lifetimeAverageOdds;
   }
 
   uint256 public miningFee; // paid by seller -> to be shared by validators
   uint256 public sellerStakingFee; // paid by seller, staked per prediction
   uint256 public minerStakingFee; // paid by miner, staked per validation
   uint32 public minerPercentage; // %  for miner, In event of a prediction won
-  uint16 public minWonCountForVerification; // minimum number of won predictions to be verified
+
+  ///@notice Seller requires needs to surpass 100 Won predictions to be eligible to create a verified username
+  uint16 public minWonCountForVerification = 100; 
 
   /**********************************/
   /*╔═════════════════════════════╗
@@ -295,4 +296,6 @@ abstract contract Base is Ownable {
 
     return true;
   }
+
+  
 }

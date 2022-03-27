@@ -99,8 +99,6 @@ abstract contract Seller is Base {
     );
     Performance[_prediction.seller]
       .lifetimeProfitability = _getLifetimeProfitability(_prediction.seller);
-    Performance[_prediction.seller]
-      .lifetimeAverageOdds = _getLifetimeAverageOdds(_prediction.seller);
   }
 
   ///@notice POV > 1  & POV < 3
@@ -116,6 +114,17 @@ abstract contract Seller is Base {
       _prediction.sellerStakingFeeRefunded = true;
       Balances[_prediction.seller] += sellerStakingFee;
     }
+  }
+
+  ///@dev Calculates rememant of mining fee (each miner received 1/5 of miningFee after successful validation)
+  ///@param _UID Prediction ID
+  ///@return remaining mining fee
+
+  function remenantOfMiningFee(uint256 _UID) internal view returns (uint256) {
+    uint256 miningFeePerValidator = miningFee / MAX_VALIDATORS;
+    uint256 totalSpent = miningFeePerValidator *
+      Predictions[_UID].validatorCount;
+    return miningFee - totalSpent;
   }
 
   ///@dev Sets Prediction outcome (Win/Loss)
@@ -151,6 +160,7 @@ abstract contract Seller is Base {
       "Event not cooled down"
     );
     _refundSellerStakingFee(_prediction);
+    Balances[msg.sender] += remenantOfMiningFee(_prediction.UID); // refund remenant of mining fee
     _setPredictionOutcome(_prediction);
     if (_prediction.status == Status.Inconclusive) {
       if (_sellerVote == true) {
@@ -230,16 +240,6 @@ abstract contract Seller is Base {
   ///@dev Calculate the lifetime average odds based on sellers entire prediction sale history
   ///@param _tipster Address of seller -> tipster
   ///@return Lifetime average odds (between 0 - 100%) -> multiplied by 1000 to preserve floating point numbers
-
-  function _getLifetimeAverageOdds(address _tipster)
-    private
-    view
-    returns (uint256)
-  {
-    return
-      (UserProfile[_tipster].totalOdds * CONSTANT_VALUE_MULTIPLIER) /
-      UserProfile[_tipster].totalPredictions;
-  }
 
   ///@dev Updates the array-list of the tipster last 30 predictions data
   ///@param _tipster Address of seller -> tipster

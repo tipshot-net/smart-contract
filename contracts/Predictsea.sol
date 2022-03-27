@@ -14,6 +14,12 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     ║           EVENTS            ║
     ╚═════════════════════════════╝*/
 
+  event VariableUpdated(
+    uint256 miningFee,
+    uint256 sellerStakingFee,
+    uint256 minerStakingFee,
+    uint32 minerPercentage
+  );
   event PredictionCreated(
     address indexed sender,
     uint256 indexed UID,
@@ -83,21 +89,33 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     ╚═════════════════════════════╝*/
 
   // constructor
-  constructor(
-    address _NFTAddress,
+  constructor(address _NFTAddress) {
+    owner = payable(msg.sender);
+    NFT_CONTRACT_ADDRESS = _NFTAddress;
+  }
+
+  ///@dev Set all variables in one function to reduce contract size
+  ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
+  ///@param _sellerStakingFee Seller staking fee in wei
+  ///@param _minerStakingFee Miner staking fee in wei
+  ///@param _minerPercentage Percentage of the total_prediction_earnings each miner receives in event of winning (Value between 0 - 100)
+
+  function setVariables(
     uint256 _miningFee,
     uint256 _sellerStakingFee,
     uint256 _minerStakingFee,
-    uint32 _minerPercentage,
-    uint16 _minWonCountForVerification
-  ) {
-    owner = payable(msg.sender);
-    NFT_CONTRACT_ADDRESS = _NFTAddress;
+    uint32 _minerPercentage
+  ) external onlyOwner {
     miningFee = _miningFee;
     sellerStakingFee = _sellerStakingFee;
     minerStakingFee = _minerStakingFee;
     minerPercentage = _minerPercentage;
-    minWonCountForVerification = _minWonCountForVerification;
+    emit VariableUpdated(
+      miningFee,
+      sellerStakingFee,
+      minerStakingFee,
+      minerPercentage
+    );
   }
 
   //Seller creates prediction and pays staking fee with wallet balance (non-payable)
@@ -160,9 +178,13 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     onlySeller(_UID)
     notMined(_UID)
   {
-    _refundSellerStakingFee(Predictions[_UID]);
+    require(
+      Predictions[_UID].state != State.Withdrawn,
+      "Prediction already withdrawn!"
+    );
     Predictions[_UID].state = State.Withdrawn;
-
+    _refundSellerStakingFee(Predictions[_UID]);
+    Balances[msg.sender] += remenantOfMiningFee(_UID); //Refund mining fee
     emit PredictionWithdrawn(_UID, msg.sender);
   }
 
@@ -431,10 +453,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     Predictions[_UID].winningClosingVote = _winningClosingVote;
 
     if (block.timestamp > Predictions[_UID].endTime + (TWENTY_FOUR_HOURS * 3)) {
-      lockFunds(Predictions[_UID].seller, sellerStakingFee);
       Predictions[_UID].withdrawnEarnings = true;
       Predictions[_UID].state = State.Concluded;
-
+      lockFunds(Predictions[_UID].seller, sellerStakingFee);
+      Balances[msg.sender] += remenantOfMiningFee(_UID); //refund remenant of mining fee;
       return;
     }
     _setUpSellerClosing(Predictions[_UID], _sellerVote);
@@ -528,12 +550,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
         ActiveBoughtPredictions[_UIDs[index]][msg.sender] = false;
       }
     }
-  }
-
-  ///@dev Returns owner of NFT currently held in the this contract
-
-  function ownerOfNft(uint256 _tokenId) external view returns (address) {
-    return TokenOwner[_tokenId];
   }
 
   ///@dev Withdraw funds from the contract
@@ -682,31 +698,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
   }
 
-  ///@notice set mining fee in wei
-
-  function setMiningFee(uint256 amount) external onlyOwner {
-    miningFee = amount;
-  }
-
-  ///@notice set seller staking fee in wei
-
-  function setSellerStakingFee(uint256 amount) external onlyOwner {
-    sellerStakingFee = amount;
-  }
-
-  ///@notice set miner staking fee in wei
-
-  function setMinerStakingFee(uint256 amount) external onlyOwner {
-    minerStakingFee = amount;
-  }
-
-  ///@notice set percentage of the total_prediction_earnings each miner receives in event of winning
-  ///@param percent Value between 0 - 100
-
-  function setMinerPercentage(uint32 percent) external onlyOwner {
-    minerPercentage = percent;
-  }
-
   function onERC721Received(
     address,
     address,
@@ -718,6 +709,5 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
   receive() external payable {
     Balances[msg.sender] += msg.value;
-    emit DepositCreated(msg.sender, msg.value);
   }
 }
