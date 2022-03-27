@@ -15,7 +15,7 @@ async function main() {
 
   // We get the contract to deploy
   const Contract = await ethers.getContractFactory("Predictsea")
-  // const code = await Contract.deploy("Hello, Hardhat!")
+  // const code = await Contract.deploy("...........")
 
   // await code.deployed()
 

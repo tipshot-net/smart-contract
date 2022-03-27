@@ -151,6 +151,9 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
+  ///@notice Seller can withdraw prediction only before any miner has mined it.
+  ///@param _UID prediction UID
+
   function withdrawPrediction(uint256 _UID)
     external
     override
@@ -163,6 +166,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit PredictionWithdrawn(_UID, msg.sender);
   }
 
+  ///@notice Prediction info can only be updated only before any miner has mined it.
   function updatePrediction(
     uint256 _UID,
     uint256 _startTime,
@@ -182,6 +186,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
+  ///@dev miner can place validation request and pay staking fee using wallet funds
+  ///@param _UID Prediction UID
+  ///@param _tokenId NFT token Id
+  ///@param payload Serverside generated ID to detect malicious direct callers of this function
+
   function requestValidationWithWallet(
     uint256 _UID,
     uint256 _tokenId,
@@ -194,6 +203,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit ValidationRequested(_UID, _tokenId, msg.sender, payload);
   }
 
+  ///@dev miner can place validation request and pay staking fee by sending it in the transaction
+  ///@param _UID Prediction UID
+  ///@param _tokenId NFT token Id
+  ///@param payload Serverside generated ID to detect malicious direct callers of this function
+
   function requestValidation(
     uint256 _UID,
     uint256 _tokenId,
@@ -205,6 +219,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     Predictions[_UID].validators[_tokenId].miner = TokenOwner[_tokenId];
     emit ValidationRequested(_UID, _tokenId, msg.sender, payload);
   }
+
+  ///@dev miner submits opening validation decision on seller's prediction
+  ///@param _UID Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _option Miner's validation decision
 
   function submitOpeningVote(
     uint256 _UID,
@@ -236,6 +255,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
     emit VoteSubmitted(_UID, _tokenId, _option, Predictions[_UID].state);
   }
+
+  ///@dev miner updates opening validation decision on seller's prediction
+  ///@param _UID Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _vote Miner's validation decision
 
   function updateMinerOpeningVote(
     uint256 _UID,
@@ -280,6 +304,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit MinerOpeningVoteUpdated(_UID, _tokenId, _vote);
   }
 
+  ///@dev Users can purchase prediction using wallet balance
+  ///@param _UID Prediction ID
+  ///@param email Email address of purchaser
+
   function purchasePredictionWithWallet(uint256 _UID, string calldata email)
     external
     override
@@ -293,6 +321,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit PredictionPurchased(_UID, msg.sender, email);
   }
 
+  ///@dev Users can purchase prediction by sending purchase fee in the transaction
+  ///@param _UID Prediction ID
+  ///@param email Email address of purchaser
+
   function purchasePrediction(uint256 _UID, string calldata email)
     external
     payable
@@ -302,6 +334,13 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     _setUpPurchase(_UID);
     emit PredictionPurchased(_UID, msg.sender, email);
   }
+
+  /**Cool down period is 6hrs (21600 secs) after the game ends */
+  ///@notice Prediction must have ended and cooled down to call this function
+  ///@dev miner submits closing validation decision on seller's prediction.
+  ///@param _UID Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _option Miner's validation decision
 
   function submitClosingVote(
     uint256 _UID,
@@ -323,6 +362,12 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
     emit ClosingVoteSubmitted(_UID, _tokenId, _option);
   }
+
+  ///@notice This function can only be called only if seller hasn't concluded transaction
+  ///@dev miner submits closing validation decision on seller's prediction.
+  ///@param _UID Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _vote Miner's validation decision
 
   function updateMinerClosingVote(
     uint256 _UID,
@@ -368,6 +413,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit MinerClosingVoteUpdated(_UID, _tokenId, _vote);
   }
 
+  ///@notice seller can only conclude transaction after games ended and cooled down
+  ///@dev Seller concludes transaction and settles all parties, depending on the prediction outcome.
+  ///@param _UID Prediction ID.
+  ///@param _sellerVote seller vote would only be using to break tie in miners closing votes.
   function concludeTransaction(uint256 _UID, bool _sellerVote)
     external
     override
@@ -425,6 +474,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit TransactionConcluded(_UID, Predictions[_UID].status);
   }
 
+  ///@notice Upon miner successful opening validation, prediction ID is added to miner's validation list
+  ///@dev Miners can remove validation records [in batch] on successfull conclusion.
+  ///@param _UIDs list of validation records to be removed
+
   function removeFromOwnedValidations(uint256[] calldata _UIDs)
     external
     override
@@ -439,6 +492,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
       }
     }
   }
+
+  ///@notice Upon seller successful prediction upload, prediction ID is added to seller's predictions list
+  ///@dev Seller can remove prediction records [in batch] on successfull conclusion.
+  ///@param _UIDs list of prediction records to be removed
 
   function removeFromOwnedPredictions(uint256[] calldata _UIDs)
     external
@@ -455,6 +512,9 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     }
   }
 
+  ///@notice Upon buyer successful prediction purchase, prediction ID is added to purchaser's predictions list
+  ///@dev User can remove prediction records [in batch] on successfull conclusion.
+  ///@param _UIDs list of prediction records to be removed
   function removeFromBoughtPredictions(uint256[] calldata _UIDs)
     external
     override
@@ -470,9 +530,14 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     }
   }
 
+  ///@dev Returns owner of NFT currently held in the this contract
+
   function ownerOfNft(uint256 _tokenId) external view returns (address) {
     return TokenOwner[_tokenId];
   }
+
+  ///@dev Withdraw funds from the contract
+  ///@param _amount Amount to be withdrawn
 
   function withdrawFunds(uint256 _amount) external isOpen {
     require(Balances[msg.sender] >= _amount, "Not enough balance");
@@ -487,6 +552,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit Withdrawal(msg.sender, _amount, Balances[msg.sender]);
   }
 
+  ///@notice Sellers can only create a verified username after surpassing a minimum number of won predictions
+  ///@dev Seller create a verified username
+  ///@param _username Supplied username
+
   function createUsername(bytes32 _username) external {
     require(
       UserProfile[msg.sender].wonCount >= minWonCountForVerification,
@@ -500,6 +569,9 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     UserProfile[msg.sender].username = _username;
     emit UsernameCreated(msg.sender, _username);
   }
+
+  ///@dev Withdraw locked funds to contract balance.
+  ///@param _amount Amount to be withdrawn
 
   function transferLockedFunds(uint256 _amount) external {
     require(LockedFunds[msg.sender].amount > _amount, "Not enough balance");
@@ -517,8 +589,12 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
-  //in this case, the prediction didn't make it to the active state
-  function withdrawMinerNftandStakingFee(uint256 _tokenId, uint256 _UID)
+  ///@notice in this case, the prediction didn't make it to the active state ( < 60% positive opening validations )
+  ///@dev Miner withdraws NFT and staking fee
+  ///@param _UID Prediction ID
+  ///@param _tokenId NFT tokenID
+
+  function withdrawMinerNftandStakingFee(uint256 _UID, uint256 _tokenId)
     external
     override
     isNftOwner(_tokenId)
@@ -532,6 +608,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     _returnNftAndStakingFee(_UID, _tokenId);
     emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
   }
+
+  ///@notice In this very rare case, a buyer purchases a prediction that didn't go active or was withdrawn
+  ///@dev Buyer is refunded of purchase fee
+  ///@param _UID Prediction ID
 
   function buyerRefund(uint256 _UID)
     external
@@ -548,6 +628,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit PurchaseRefunded(_UID, msg.sender);
   }
 
+  ///@notice In this case, seller didn't conclude transaction within the set window period
+  ///@dev Refunds NFT and staking fee back to miner
+  ///@param _UID Prediction ID
+  ///@param _tokenId Miner NFT token Id
+
   function inconclusiveMinerRefund(uint256 _UID, uint256 _tokenId)
     external
     override
@@ -559,6 +644,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
   }
 
+  ///@notice In this case, seller didn't conclude transaction within the set window period
+  ///@dev Refunds buyer prediction purchase fee
+  ///@param _UID Prediction ID
+
   function inconclusiveBuyerRefund(uint256 _UID)
     external
     override
@@ -569,6 +658,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
     emit PurchaseRefunded(_UID, msg.sender);
   }
+
+  ///@notice In this case, Prediction got > 0% & < 60% positive opening validations so couldn't make it to active state
+  ///@dev Refunds prediction seller's staking fee
+  ///@param _UID Prediction ID
 
   function refundSellerStakingFee(uint256 _UID)
     external
@@ -589,17 +682,26 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
   }
 
+  ///@notice set mining fee in wei
+
   function setMiningFee(uint256 amount) external onlyOwner {
     miningFee = amount;
   }
+
+  ///@notice set seller staking fee in wei
 
   function setSellerStakingFee(uint256 amount) external onlyOwner {
     sellerStakingFee = amount;
   }
 
+  ///@notice set miner staking fee in wei
+
   function setMinerStakingFee(uint256 amount) external onlyOwner {
     minerStakingFee = amount;
   }
+
+  ///@notice set percentage of the total_prediction_earnings each miner receives in event of winning
+  ///@param percent Value between 0 - 100
 
   function setMinerPercentage(uint32 percent) external onlyOwner {
     minerPercentage = percent;
