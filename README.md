@@ -8,7 +8,7 @@ The project has two deployable smart contracts.
 
 - Predictsea NFT contract [see documentation](https://fanciful-cajeta-9161c3.netlify.app/#/contracts/PredictNFT.sol:PredictNFT).
 
-The project comes with a script that deploys that contract, and a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+The project also comes with a script that deploys that contract, and a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
 
 Try running some of the following tasks:
 
