@@ -1,8 +1,14 @@
-# Advanced Sample Hardhat Project
+# Predictsea Smart Contract Project
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+Predict Sea is blockchain powered sport prediction marketplace.
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+The project has two deployable smart contracts.
+
+- Predictsea main contract [see documentation](https://fanciful-cajeta-9161c3.netlify.app/#/contracts/Predictsea.sol:Predictsea).
+
+- Predictsea NFT contract [see documentation](https://fanciful-cajeta-9161c3.netlify.app/#/contracts/PredictNFT.sol:PredictNFT).
+
+The project comes with a script that deploys that contract, and a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
 
 Try running some of the following tasks:
 
@@ -38,7 +44,7 @@ hardhat run --network ropsten scripts/deploy.ts
 Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
 
 ```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
+npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS
 ```
 
 # Performance optimizations
