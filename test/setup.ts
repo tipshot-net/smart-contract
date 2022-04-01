@@ -1,14 +1,9 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers"
 import { Predictsea } from "../typechain";
+import state from "./variables";
 
-
-const miningFee = ethers.utils.parseEther("10.0");
-const sellerStakingFee = ethers.utils.parseEther("40.0");
-const minerStakingFee = ethers.utils.parseEther("10.0")
-const minerPercentage = 5;
 
 
 describe("set up contract", async function () {
@@ -39,23 +34,23 @@ describe("set up contract", async function () {
     
     it("should have correct variable set by owner", async function () {
       await contract.connect(contractOwner).setVariables(
-        miningFee,
-        sellerStakingFee,
-        minerStakingFee,
-        minerPercentage
+        state.miningFee,
+        state.sellerStakingFee,
+        state.minerStakingFee,
+        state.minerPercentage
         );
-    expect(await contract.miningFee()).to.equal(miningFee);
-    expect(await contract.sellerStakingFee()).to.equal(sellerStakingFee);
-    expect(await contract.minerStakingFee()).to.equal(minerStakingFee);
-    expect(await contract.minerPercentage()).to.equal(minerPercentage)  
+    expect(await contract.miningFee()).to.equal(state.miningFee);
+    expect(await contract.sellerStakingFee()).to.equal(state.sellerStakingFee);
+    expect(await contract.minerStakingFee()).to.equal(state.minerStakingFee);
+    expect(await contract.minerPercentage()).to.equal(state.minerPercentage)  
     })
 
     it("should revert if variable set by non owner", async function () {
       await expect(contract.connect(user1).setVariables(
-        miningFee,
-        sellerStakingFee,
-        minerStakingFee,
-        minerPercentage
+        state.miningFee,
+        state.sellerStakingFee,
+        state.minerStakingFee,
+        state.minerPercentage
         )).to.be.revertedWith("Unauthorized access");
     })
 
