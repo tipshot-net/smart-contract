@@ -8,11 +8,10 @@ contract Ownable {
   /** contract can be locked in case of emergencies */
   bool public locked = false;
 
-  uint256 private lastLockedDate;
 
   /** nominated address can claim ownership of contract 
     and automatically become owner */
-  address payable private nominatedOwner;
+  address payable public nominatedOwner;
 
   event IsLocked(bool lock_status);
   event NewOwnerNominated(address nominee);
@@ -20,7 +19,7 @@ contract Ownable {
 
   /// @notice Only allows the `owner` to execute the function.
   modifier onlyOwner() {
-    require(msg.sender == owner, "Unauthorized access to contract");
+    require(msg.sender == owner, "Unauthorized access");
     _;
   }
 
@@ -37,16 +36,10 @@ contract Ownable {
 
   function lock() external onlyOwner {
     locked = true;
-    lastLockedDate = block.timestamp;
     emit IsLocked(locked);
   }
 
-  function unlock() external {
-    require(
-      locked &&
-        (msg.sender == owner || (block.timestamp > lastLockedDate + 604800)),
-      "Not owner!"
-    );
+  function unlock() external onlyOwner {
     locked = false;
     emit IsLocked(locked);
   }
