@@ -5,11 +5,17 @@ import "hardhat/console.sol";
 import "./Seller.sol";
 import "./Miner.sol";
 import "./Buyer.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /// @title PredictSea {Blockchain powered sport prediction marketplace}
 
 contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
+
+  using Counters for Counters.Counter;
+
+  Counters.Counter private _predictionIds;
+  
   /*╔═════════════════════════════╗
     ║           EVENTS            ║
     ╚═════════════════════════════╝*/
@@ -22,19 +28,22 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   );
   event PredictionCreated(
     address indexed sender,
-    uint256 indexed UID,
-    uint256 startTime,
-    uint256 endTime,
-    uint16 odd,
-    uint256 price
+    uint256 indexed id,
+    string ipfsHash,
+    string key
+  );
+  event PredictionUpdated(
+    address indexed sender,
+    uint256 indexed id,
+    string ipfsHash,
+    string key
   );
   event DepositCreated(address sender, uint256 value);
 
-  event ValidationRequested(
-    uint256 indexed UID,
-    uint256 indexed tokenId,
+  event ValidationAssigned(
     address miner,
-    bytes32 payload
+    uint256 indexed id,
+    uint256 indexed tokenId
   );
   event VoteSubmitted(
     uint256 indexed UID,
@@ -50,14 +59,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
   );
   event TransactionConcluded(uint256 indexed UID, Status status);
   event PredictionWithdrawn(uint256 indexed UID, address seller);
-  event PredictionUpdated(
-    uint256 indexed UID,
-    address indexed sender,
-    uint256 startTime,
-    uint256 endTime,
-    uint16 odd,
-    uint256 price
-  );
+  
   event MinerOpeningVoteUpdated(
     uint256 indexed UID,
     uint256 indexed tokenId,
@@ -89,9 +91,8 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     ╚═════════════════════════════╝*/
 
   // constructor
-  constructor(address _NFTAddress) {
+  constructor() {
     owner = payable(msg.sender);
-    NFT_CONTRACT_ADDRESS = _NFTAddress;
   }
 
   ///@dev Set all variables in one function to reduce contract size
@@ -118,585 +119,571 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
-  //Seller creates prediction and pays staking fee with wallet balance (non-payable)
+  ///@dev Allows owner to set NFT address
+  ///@param _NftAddress Deployed NFT contract address
 
-  function createPredictionWithWallet(
-    uint256 _UID,
-    uint256 _startTime,
-    uint256 _endTime,
-    uint16 _odd,
-    uint256 _price
-  ) external override {
-    uint256 total = miningFee + sellerStakingFee;
-    require(Balances[msg.sender] >= total, "Not enough balance");
-    Balances[msg.sender] -= total;
-
-    _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
-    emit PredictionCreated(
-      msg.sender,
-      _UID,
-      _startTime,
-      _endTime,
-      _odd,
-      _price
-    );
+  function setNftAddress(address _NftAddress) external onlyOwner notZeroAddress(_NftAddress) {
+    NFT_CONTRACT_ADDRESS = _NftAddress;
   }
 
-  // Seller creates prediction and pays staking fee by sending required wei in transaction (payable)
+  ///@dev creates new prediction added to the mining pool
+  ///@param _ipfsHash ipfs Url hash containing the encrypted prediction data
+  ///@param _key prediction data encryption key (encrypted)
+  ///@param _startTime expected start time of the first game in the predictions
+  ///@param _endTime expected end time of the last game in the predictions
+  ///@param _odd total accumulated odd
+  ///@param _price selling price
 
   function createPrediction(
-    uint256 _UID,
+    string memory _ipfsHash,
+    string memory _key,
     uint256 _startTime,
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
   ) external payable override {
     uint256 total = miningFee + sellerStakingFee;
-    require(msg.value >= total, "Not enough ether");
-    uint256 bal = msg.value - total;
-    if (bal > 0) {
-      Balances[msg.sender] += bal;
+    if(msg.value < total){
+      require(Balances[msg.sender] >= (total - msg.value), "Insufficient balance");
+      Balances[msg.sender] -= (total - msg.value);
+    }else{
+      require(msg.value >= total, "Not enough ether");
+      uint256 bal = msg.value - total;
+      if (bal > 0) {
+        Balances[msg.sender] += bal;
+      }
     }
 
-    _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+    _predictionIds.increment();
+    uint256 _id = _predictionIds.current();
+
+   _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
     emit PredictionCreated(
       msg.sender,
-      _UID,
-      _startTime,
-      _endTime,
-      _odd,
-      _price
+      _id,
+      _ipfsHash,
+      _key
     );
   }
 
-  ///@notice Seller can withdraw prediction only before any miner has mined it.
-  ///@param _UID prediction UID
+  // /@notice Seller can withdraw prediction only before any miner has mined it.
+  // /@param _id prediction Id
 
-  function withdrawPrediction(uint256 _UID)
-    external
-    override
-    onlySeller(_UID)
-    notMined(_UID)
-  {
-    require(
-      Predictions[_UID].state != State.Withdrawn,
-      "Prediction already withdrawn!"
-    );
-    Predictions[_UID].state = State.Withdrawn;
-    _refundSellerStakingFee(Predictions[_UID]);
-    Balances[msg.sender] += remenantOfMiningFee(_UID); //Refund mining fee
-    emit PredictionWithdrawn(_UID, msg.sender);
-  }
+  // function withdrawPrediction(uint256 _id)
+  //   external
+  //   override
+  //   onlySeller(_id)
+  //   notMined(_id)
+  // {
+  //   require(
+  //     Predictions[_id].state != State.Withdrawn,
+  //     "Prediction already withdrawn!"
+  //   );
+  //   Predictions[_id].state = State.Withdrawn;
+  //   delete miningPool[_id - 1]; //delete prediction entry from mining pool
+  //   _refundSellerStakingFee(Predictions[_id]);
+  //   Balances[msg.sender] += remenantOfMiningFee(_id); //Refund mining fee
+  //   emit PredictionWithdrawn(_id, msg.sender);
+  // }
 
-  ///@notice Prediction info can only be updated only before any miner has mined it.
-  function updatePrediction(
-    uint256 _UID,
-    uint256 _startTime,
-    uint256 _endTime,
-    uint16 _odd,
-    uint256 _price
-  ) external override onlySeller(_UID) notMined(_UID) {
-    _setupPrediction(_UID, _startTime, _endTime, _odd, _price);
+  // ///@notice Prediction info can only be updated only before any miner has mined it.
+  // function updatePrediction(
+  //   uint256 _id,
+  //   string memory _ipfsHash,
+  //   string memory _key,
+  //   uint256 _startTime,
+  //   uint256 _endTime,
+  //   uint16 _odd,
+  //   uint256 _price
+  // ) external override onlySeller(_id) notMined(_id) {
+  //   _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
-    emit PredictionUpdated(
-      _UID,
-      msg.sender,
-      _startTime,
-      _endTime,
-      _odd,
-      _price
-    );
-  }
+  //   emit PredictionUpdated(
+  //      msg.sender,
+  //     _id,
+  //    _ipfsHash,
+  //    _key
+  //   );
+  // }
 
-  ///@dev miner can place validation request and pay staking fee using wallet funds
-  ///@param _UID Prediction UID
-  ///@param _tokenId NFT token Id
-  ///@param payload Serverside generated ID to detect malicious direct callers of this function
+  
 
-  function requestValidationWithWallet(
-    uint256 _UID,
-    uint256 _tokenId,
-    bytes32 payload
-  ) external override {
-    require(Balances[msg.sender] >= minerStakingFee, "Not enough balance");
-    Balances[msg.sender] -= minerStakingFee;
-    _transferNftToContract(_tokenId);
-    _setUpValidationRequest(_tokenId, _UID);
-    emit ValidationRequested(_UID, _tokenId, msg.sender, payload);
-  }
+  // ///@dev miner can place validation request and pay staking fee by sending it in the transaction
+  // ///@param _tokenId NFT token Id
+  // function requestValidation(
+  //   uint256 _tokenId,
+  //   string memory _key
+  // ) external payable override {
+  //   if(msg.value < minerStakingFee){
+  //     require(Balances[msg.sender] >= (minerStakingFee - msg.value), "Insufficient balance");
+  //     Balances[msg.sender] -= (minerStakingFee - msg.value);
+  //   }else{
+  //     require(msg.value >= minerStakingFee, "Not enough ether");
+  //     uint256 bal = msg.value - minerStakingFee;
+  //     if (bal > 0) {
+  //       Balances[msg.sender] += bal;
+  //     }
+  //   }
+  //   _transferNftToContract(_tokenId);
+  //   uint256 _id = _assignPredictionToMiner(_tokenId, _key);
+  //   emit ValidationAssigned(msg.sender, _id, _tokenId);
+  // }
 
-  ///@dev miner can place validation request and pay staking fee by sending it in the transaction
-  ///@param _UID Prediction UID
-  ///@param _tokenId NFT token Id
-  ///@param payload Serverside generated ID to detect malicious direct callers of this function
+  // /@dev miner submits opening validation decision on seller's prediction
+  // /@param _UID Prediction ID
+  // /@param _tokenId Miner's NFT token Id
+  // /@param _option Miner's validation decision
 
-  function requestValidation(
-    uint256 _UID,
-    uint256 _tokenId,
-    bytes32 payload
-  ) external payable override {
-    require(msg.value >= minerStakingFee, "Not enough balance");
-    _transferNftToContract(_tokenId);
-    _setUpValidationRequest(_tokenId, _UID);
-    Predictions[_UID].validators[_tokenId].miner = TokenOwner[_tokenId];
-    emit ValidationRequested(_UID, _tokenId, msg.sender, payload);
-  }
+  // function submitOpeningVote(
+  //   uint256 _UID,
+  //   uint256 _tokenId,
+  //   uint8 _option
+  // ) external override {
+  //   require(_option == 1 || _option == 2, "Invalid validation option");
 
-  ///@dev miner submits opening validation decision on seller's prediction
-  ///@param _UID Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _option Miner's validation decision
+  //   Vote storage _vote = _setUpOpeningVote(_UID, _tokenId);
+  //   if (_option == 1) {
+  //     _vote.opening = ValidationStatus.Positive;
+  //     Predictions[_UID].positiveOpeningVoteCount += 1;
+  //   } else {
+  //     _vote.opening = ValidationStatus.Negative;
+  //     Predictions[_UID].negativeOpeningVoteCount += 1;
+  //   }
 
-  function submitOpeningVote(
-    uint256 _UID,
-    uint256 _tokenId,
-    uint8 _option
-  ) external override {
-    require(_option == 1 || _option == 2, "Invalid validation option");
+  //   if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
+  //     //prediction receives 60% positive validations
+  //     Predictions[_UID].state = State.Active;
+  //   }
+  //   if (Predictions[_UID].negativeOpeningVoteCount >= EIGHTY_PERCENT) {
+  //     Predictions[_UID].state = State.Denied;
+  //     lockFunds(Predictions[_UID].seller, sellerStakingFee);
+  //   }
 
-    Vote storage _vote = _setUpOpeningVote(_UID, _tokenId);
-    if (_option == 1) {
-      _vote.opening = ValidationStatus.Positive;
-      Predictions[_UID].positiveOpeningVoteCount += 1;
-    } else {
-      _vote.opening = ValidationStatus.Negative;
-      Predictions[_UID].negativeOpeningVoteCount += 1;
-    }
+  //   uint256 minerBonus = miningFee / MAX_VALIDATORS;
+  //   Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
 
-    if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
-      //prediction receives 60% positive validations
-      Predictions[_UID].state = State.Active;
-    }
-    if (Predictions[_UID].negativeOpeningVoteCount >= EIGHTY_PERCENT) {
-      Predictions[_UID].state = State.Denied;
-      lockFunds(Predictions[_UID].seller, sellerStakingFee);
-    }
+  //   emit VoteSubmitted(_UID, _tokenId, _option, Predictions[_UID].state);
+  // }
 
-    uint256 minerBonus = miningFee / MAX_VALIDATORS;
-    Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
+  // /@dev miner updates opening validation decision on seller's prediction
+  // /@param _UID Prediction ID
+  // /@param _tokenId Miner's NFT token Id
+  // /@param _vote Miner's validation decision
 
-    emit VoteSubmitted(_UID, _tokenId, _option, Predictions[_UID].state);
-  }
+  // function updateMinerOpeningVote(
+  //   uint256 _UID,
+  //   uint256 _tokenId,
+  //   uint8 _vote
+  // ) external override isNftOwner(_tokenId) {
+    // require(
+    //   Predictions[_UID].state == State.Inactive,
+    //   "Prediction already active"
+    // );
+    // ValidationStatus _status = _getMinerOpeningPredictionVote(_UID, _tokenId);
+    // require(
+    //   _status != ValidationStatus.Neutral &&
+    //     _status != ValidationStatus.Assigned,
+    //   "Didn't vote previously"
+    // );
+    // require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
+    // if (_vote == 2) {
+    //   require(
+    //     _status != ValidationStatus.Positive,
+    //     "same as previous vote option"
+    //   );
+    //   Predictions[_UID].validators[_tokenId].opening = ValidationStatus
+    //     .Positive;
+    //   Predictions[_UID].negativeOpeningVoteCount -= 1;
+    //   Predictions[_UID].positiveOpeningVoteCount += 1;
+    // } else {
+    //   require(
+    //     _status != ValidationStatus.Negative,
+    //     "same as previous vote option"
+    //   );
+    //   Predictions[_UID].validators[_tokenId].opening = ValidationStatus
+    //     .Negative;
+    //   Predictions[_UID].positiveOpeningVoteCount -= 1;
+    //   Predictions[_UID].negativeOpeningVoteCount += 1;
+    // }
 
-  ///@dev miner updates opening validation decision on seller's prediction
-  ///@param _UID Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _vote Miner's validation decision
+    // if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
+    //   //prediction receives 60% positive validations
+    //   Predictions[_UID].state = State.Active;
+    // }
+    // emit MinerOpeningVoteUpdated(_UID, _tokenId, _vote);
+  //}
 
-  function updateMinerOpeningVote(
-    uint256 _UID,
-    uint256 _tokenId,
-    uint8 _vote
-  ) external override isNftOwner(_tokenId) {
-    require(
-      Predictions[_UID].state == State.Inactive,
-      "Prediction already active"
-    );
-    ValidationStatus _status = _getMinerOpeningPredictionVote(_UID, _tokenId);
-    require(
-      _status != ValidationStatus.Neutral &&
-        _status != ValidationStatus.Assigned,
-      "Didn't vote previously"
-    );
-    require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
-    if (_vote == 2) {
-      require(
-        _status != ValidationStatus.Positive,
-        "same as previous vote option"
-      );
-      Predictions[_UID].validators[_tokenId].opening = ValidationStatus
-        .Positive;
-      Predictions[_UID].negativeOpeningVoteCount -= 1;
-      Predictions[_UID].positiveOpeningVoteCount += 1;
-    } else {
-      require(
-        _status != ValidationStatus.Negative,
-        "same as previous vote option"
-      );
-      Predictions[_UID].validators[_tokenId].opening = ValidationStatus
-        .Negative;
-      Predictions[_UID].positiveOpeningVoteCount -= 1;
-      Predictions[_UID].negativeOpeningVoteCount += 1;
-    }
+  // /@dev Users can purchase prediction using wallet balance
+  // /@param _UID Prediction ID
+  // /@param email Email address of purchaser
 
-    if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
-      //prediction receives 60% positive validations
-      Predictions[_UID].state = State.Active;
-    }
-    emit MinerOpeningVoteUpdated(_UID, _tokenId, _vote);
-  }
+  // function purchasePredictionWithWallet(uint256 _UID, string calldata email)
+  //   external
+  //   override
+  // {
+  //   require(
+  //     Balances[msg.sender] >= Predictions[_UID].price,
+  //     "Insufficient balance"
+  //   );
+  //   Balances[msg.sender] -= Predictions[_UID].price;
+  //   _setUpPurchase(_UID);
+  //   emit PredictionPurchased(_UID, msg.sender, email);
+  // }
 
-  ///@dev Users can purchase prediction using wallet balance
-  ///@param _UID Prediction ID
-  ///@param email Email address of purchaser
+  // ///@dev Users can purchase prediction by sending purchase fee in the transaction
+  // ///@param _UID Prediction ID
+  // ///@param email Email address of purchaser
 
-  function purchasePredictionWithWallet(uint256 _UID, string calldata email)
-    external
-    override
-  {
-    require(
-      Balances[msg.sender] >= Predictions[_UID].price,
-      "Insufficient balance"
-    );
-    Balances[msg.sender] -= Predictions[_UID].price;
-    _setUpPurchase(_UID);
-    emit PredictionPurchased(_UID, msg.sender, email);
-  }
+  // function purchasePrediction(uint256 _UID, string calldata email)
+  //   external
+  //   payable
+  //   override
+  // {
+  //   require(msg.value >= Predictions[_UID].price, "Not enough ether");
+  //   _setUpPurchase(_UID);
+  //   emit PredictionPurchased(_UID, msg.sender, email);
+  // }
 
-  ///@dev Users can purchase prediction by sending purchase fee in the transaction
-  ///@param _UID Prediction ID
-  ///@param email Email address of purchaser
+  // /**Cool down period is 6hrs (21600 secs) after the game ends */
+  // ///@notice Prediction must have ended and cooled down to call this function
+  // ///@dev miner submits closing validation decision on seller's prediction.
+  // ///@param _UID Prediction ID
+  // ///@param _tokenId Miner's NFT token Id
+  // ///@param _option Miner's validation decision
 
-  function purchasePrediction(uint256 _UID, string calldata email)
-    external
-    payable
-    override
-  {
-    require(msg.value >= Predictions[_UID].price, "Not enough ether");
-    _setUpPurchase(_UID);
-    emit PredictionPurchased(_UID, msg.sender, email);
-  }
+  // // function submitClosingVote(
+  // //   uint256 _UID,
+  // //   uint256 _tokenId,
+  // //   uint8 _option
+  // // ) external override {
+  // //   require(_option == 1 || _option == 2, "Invalid validation option");
 
-  /**Cool down period is 6hrs (21600 secs) after the game ends */
-  ///@notice Prediction must have ended and cooled down to call this function
-  ///@dev miner submits closing validation decision on seller's prediction.
-  ///@param _UID Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _option Miner's validation decision
+  // //   Vote storage _vote = _setUpClosingVote(_UID, _tokenId);
+  // //   if (_option == 1) {
+  // //     _vote.closing = ValidationStatus.Positive;
+  // //     Predictions[_UID].positiveClosingVoteCount += 1;
+  // //   } else {
+  // //     _vote.closing = ValidationStatus.Negative;
+  // //     Predictions[_UID].negativeClosingVoteCount += 1;
+  // //   }
+  // //   Predictions[_UID].votes.push(_vote);
+  // //   _withdrawNFT(_tokenId);
 
-  function submitClosingVote(
-    uint256 _UID,
-    uint256 _tokenId,
-    uint8 _option
-  ) external override {
-    require(_option == 1 || _option == 2, "Invalid validation option");
+  // //   emit ClosingVoteSubmitted(_UID, _tokenId, _option);
+  // // }
 
-    Vote storage _vote = _setUpClosingVote(_UID, _tokenId);
-    if (_option == 1) {
-      _vote.closing = ValidationStatus.Positive;
-      Predictions[_UID].positiveClosingVoteCount += 1;
-    } else {
-      _vote.closing = ValidationStatus.Negative;
-      Predictions[_UID].negativeClosingVoteCount += 1;
-    }
-    Predictions[_UID].votes.push(_vote);
-    _withdrawNFT(_tokenId);
+  // ///@notice This function can only be called only if seller hasn't concluded transaction
+  // ///@dev miner submits closing validation decision on seller's prediction.
+  // ///@param _UID Prediction ID
+  // ///@param _tokenId Miner's NFT token Id
+  // ///@param _vote Miner's validation decision
 
-    emit ClosingVoteSubmitted(_UID, _tokenId, _option);
-  }
+  // // function updateMinerClosingVote(
+  // //   uint256 _UID,
+  // //   uint256 _tokenId,
+  // //   uint8 _vote
+  // // ) external override isNftOwner(_tokenId) {
+  // //   require(
+  // //     Predictions[_UID].validators[_tokenId].closing ==
+  // //       ValidationStatus.Positive ||
+  // //       Predictions[_UID].validators[_tokenId].closing ==
+  // //       ValidationStatus.Negative,
+  // //     "Closing vote not cast yet!"
+  // //   );
+  // //   /**Cool down period is 6hrs (21600 secs) after the game ends */
+  // //   require(
+  // //     (block.timestamp > Predictions[_UID].endTime + SIX_HOURS &&
+  // //       block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS),
+  // //     "Event not cooled down"
+  // //   );
 
-  ///@notice This function can only be called only if seller hasn't concluded transaction
-  ///@dev miner submits closing validation decision on seller's prediction.
-  ///@param _UID Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _vote Miner's validation decision
+  // //   require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
+  // //   ValidationStatus _status = _getMinerClosingPredictionVote(_UID, _tokenId);
+  // //   if (_vote == 2) {
+  // //     require(
+  // //       _status != ValidationStatus.Positive,
+  // //       "same as previous vote option"
+  // //     );
+  // //     Predictions[_UID].validators[_tokenId].closing = ValidationStatus
+  // //       .Positive;
+  // //     Predictions[_UID].negativeClosingVoteCount -= 1;
+  // //     Predictions[_UID].positiveClosingVoteCount += 1;
+  // //   } else {
+  // //     require(
+  // //       _status != ValidationStatus.Negative,
+  // //       "same as previous vote option"
+  // //     );
+  // //     Predictions[_UID].validators[_tokenId].closing = ValidationStatus
+  // //       .Negative;
+  // //     Predictions[_UID].positiveClosingVoteCount -= 1;
+  // //     Predictions[_UID].negativeClosingVoteCount += 1;
+  // //   }
 
-  function updateMinerClosingVote(
-    uint256 _UID,
-    uint256 _tokenId,
-    uint8 _vote
-  ) external override isNftOwner(_tokenId) {
-    require(
-      Predictions[_UID].validators[_tokenId].closing ==
-        ValidationStatus.Positive ||
-        Predictions[_UID].validators[_tokenId].closing ==
-        ValidationStatus.Negative,
-      "Closing vote not cast yet!"
-    );
-    /**Cool down period is 6hrs (21600 secs) after the game ends */
-    require(
-      (block.timestamp > Predictions[_UID].endTime + SIX_HOURS &&
-        block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS),
-      "Event not cooled down"
-    );
+  // //   emit MinerClosingVoteUpdated(_UID, _tokenId, _vote);
+  // // }
 
-    require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
-    ValidationStatus _status = _getMinerClosingPredictionVote(_UID, _tokenId);
-    if (_vote == 2) {
-      require(
-        _status != ValidationStatus.Positive,
-        "same as previous vote option"
-      );
-      Predictions[_UID].validators[_tokenId].closing = ValidationStatus
-        .Positive;
-      Predictions[_UID].negativeClosingVoteCount -= 1;
-      Predictions[_UID].positiveClosingVoteCount += 1;
-    } else {
-      require(
-        _status != ValidationStatus.Negative,
-        "same as previous vote option"
-      );
-      Predictions[_UID].validators[_tokenId].closing = ValidationStatus
-        .Negative;
-      Predictions[_UID].positiveClosingVoteCount -= 1;
-      Predictions[_UID].negativeClosingVoteCount += 1;
-    }
+  // ///@notice seller can only conclude transaction after games ended and cooled down
+  // ///@dev Seller concludes transaction and settles all parties, depending on the prediction outcome.
+  // ///@param _UID Prediction ID.
+  // ///@param _sellerVote seller vote would only be using to break tie in miners closing votes.
+  // // function concludeTransaction(uint256 _UID, bool _sellerVote)
+  // //   external
+  // //   override
+  // // {
+  // //   require(
+  // //     !Predictions[_UID].withdrawnEarnings,
+  // //     "Transaction already concluded"
+  // //   );
+  // //   ValidationStatus _winningOpeningVote = _getWinningOpeningVote(_UID);
+  // //   ValidationStatus _winningClosingVote = _getWinningClosingVote(_UID);
+  // //   Predictions[_UID].winningOpeningVote = _winningOpeningVote;
+  // //   Predictions[_UID].winningClosingVote = _winningClosingVote;
 
-    emit MinerClosingVoteUpdated(_UID, _tokenId, _vote);
-  }
+  // //   if (block.timestamp > Predictions[_UID].endTime + (TWENTY_FOUR_HOURS * 3)) {
+  // //     Predictions[_UID].withdrawnEarnings = true;
+  // //     Predictions[_UID].state = State.Concluded;
+  // //     lockFunds(Predictions[_UID].seller, sellerStakingFee);
+  // //     Balances[msg.sender] += remenantOfMiningFee(_UID); //refund remenant of mining fee;
+  // //     return;
+  // //   }
+  //   // _setUpSellerClosing(Predictions[_UID], _sellerVote);
+  //   // _refundMinerStakingFee(
+  //   //   Predictions[_UID],
+  //   //   _winningOpeningVote,
+  //   //   _winningClosingVote
+  //   // );
 
-  ///@notice seller can only conclude transaction after games ended and cooled down
-  ///@dev Seller concludes transaction and settles all parties, depending on the prediction outcome.
-  ///@param _UID Prediction ID.
-  ///@param _sellerVote seller vote would only be using to break tie in miners closing votes.
-  function concludeTransaction(uint256 _UID, bool _sellerVote)
-    external
-    override
-  {
-    require(
-      !Predictions[_UID].withdrawnEarnings,
-      "Transaction already concluded"
-    );
-    ValidationStatus _winningOpeningVote = _getWinningOpeningVote(_UID);
-    ValidationStatus _winningClosingVote = _getWinningClosingVote(_UID);
-    Predictions[_UID].winningOpeningVote = _winningOpeningVote;
-    Predictions[_UID].winningClosingVote = _winningClosingVote;
+  //   // if (Predictions[_UID].status == Status.Won) {
+  //   //   uint256 minersShare = ((Predictions[_UID].validatorCount) *
+  //   //     minerPercentage *
+  //   //     (Predictions[_UID].totalEarned)) / 100;
+  //   //   uint256 _sellerShare = Predictions[_UID].totalEarned - minersShare;
+  //   //   uint256 _minerPercentageAmount = (Predictions[_UID].totalEarned *
+  //   //     minerPercentage) / 100;
+  //   //   Balances[Predictions[_UID].seller] += _sellerShare;
+  //   //   for (uint256 index = 0; index < Predictions[_UID].votes.length; index++) {
+  //   //     if (Predictions[_UID].votes[index].correctValidation) {
+  //   //       Balances[
+  //   //         Predictions[_UID].votes[index].miner
+  //   //       ] += _minerPercentageAmount;
+  //   //     }
+  //   //   }
+  //   // } else {
+  //   //   for (
+  //   //     uint256 index = 0;
+  //   //     index < Predictions[_UID].buyersList.length;
+  //   //     index++
+  //   //   ) {
+  //   //     Balances[Predictions[_UID].buyersList[index]] += Predictions[_UID]
+  //   //       .price;
+  //   //   }
+  //   // }
+  //   // Predictions[_UID].withdrawnEarnings = true;
 
-    if (block.timestamp > Predictions[_UID].endTime + (TWENTY_FOUR_HOURS * 3)) {
-      Predictions[_UID].withdrawnEarnings = true;
-      Predictions[_UID].state = State.Concluded;
-      lockFunds(Predictions[_UID].seller, sellerStakingFee);
-      Balances[msg.sender] += remenantOfMiningFee(_UID); //refund remenant of mining fee;
-      return;
-    }
-    _setUpSellerClosing(Predictions[_UID], _sellerVote);
-    _refundMinerStakingFee(
-      Predictions[_UID],
-      _winningOpeningVote,
-      _winningClosingVote
-    );
+  //   // emit TransactionConcluded(_UID, Predictions[_UID].status);
+  // //}
 
-    if (Predictions[_UID].status == Status.Won) {
-      uint256 minersShare = ((Predictions[_UID].validatorCount) *
-        minerPercentage *
-        (Predictions[_UID].totalEarned)) / 100;
-      uint256 _sellerShare = Predictions[_UID].totalEarned - minersShare;
-      uint256 _minerPercentageAmount = (Predictions[_UID].totalEarned *
-        minerPercentage) / 100;
-      Balances[Predictions[_UID].seller] += _sellerShare;
-      for (uint256 index = 0; index < Predictions[_UID].votes.length; index++) {
-        if (Predictions[_UID].votes[index].correctValidation) {
-          Balances[
-            Predictions[_UID].votes[index].miner
-          ] += _minerPercentageAmount;
-        }
-      }
-    } else {
-      for (
-        uint256 index = 0;
-        index < Predictions[_UID].buyersList.length;
-        index++
-      ) {
-        Balances[Predictions[_UID].buyersList[index]] += Predictions[_UID]
-          .price;
-      }
-    }
-    Predictions[_UID].withdrawnEarnings = true;
+  // ///@notice Upon miner successful opening validation, prediction ID is added to miner's validation list
+  // ///@dev Miners can remove validation records [in batch] on successfull conclusion.
+  // ///@param _UIDs list of validation records to be removed
 
-    emit TransactionConcluded(_UID, Predictions[_UID].status);
-  }
+  // function removeFromOwnedValidations(uint256[] calldata _UIDs)
+  //   external
+  //   override
+  // {
+  //   require(OwnedValidations[msg.sender].length > 0, "No owned validations");
+  //   for (uint256 index = 0; index < _UIDs.length; index++) {
+  //     if (
+  //       ActiveValidations[_UIDs[index]][msg.sender] &&
+  //       Predictions[_UIDs[index]].state == State.Concluded
+  //     ) {
+  //       ActiveValidations[_UIDs[index]][msg.sender] = false;
+  //     }
+  //   }
+  // }
 
-  ///@notice Upon miner successful opening validation, prediction ID is added to miner's validation list
-  ///@dev Miners can remove validation records [in batch] on successfull conclusion.
-  ///@param _UIDs list of validation records to be removed
+  // ///@notice Upon seller successful prediction upload, prediction ID is added to seller's predictions list
+  // ///@dev Seller can remove prediction records [in batch] on successfull conclusion.
+  // ///@param _UIDs list of prediction records to be removed
 
-  function removeFromOwnedValidations(uint256[] calldata _UIDs)
-    external
-    override
-  {
-    require(OwnedValidations[msg.sender].length > 0, "No owned validations");
-    for (uint256 index = 0; index < _UIDs.length; index++) {
-      if (
-        ActiveValidations[_UIDs[index]][msg.sender] &&
-        Predictions[_UIDs[index]].state == State.Concluded
-      ) {
-        ActiveValidations[_UIDs[index]][msg.sender] = false;
-      }
-    }
-  }
+  // function removeFromOwnedPredictions(uint256[] calldata _UIDs)
+  //   external
+  //   override
+  // {
+  //   require(OwnedPredictions[msg.sender].length > 0, "No active predictions");
+  //   for (uint256 index = 0; index < _UIDs.length; index++) {
+  //     if (
+  //       ActiveSoldPredictions[_UIDs[index]][msg.sender] &&
+  //       Predictions[_UIDs[index]].state == State.Concluded
+  //     ) {
+  //       ActiveSoldPredictions[_UIDs[index]][msg.sender] = false;
+  //     }
+  //   }
+  // }
 
-  ///@notice Upon seller successful prediction upload, prediction ID is added to seller's predictions list
-  ///@dev Seller can remove prediction records [in batch] on successfull conclusion.
-  ///@param _UIDs list of prediction records to be removed
+  // ///@notice Upon buyer successful prediction purchase, prediction ID is added to purchaser's predictions list
+  // ///@dev User can remove prediction records [in batch] on successfull conclusion.
+  // ///@param _UIDs list of prediction records to be removed
+  // function removeFromBoughtPredictions(uint256[] calldata _UIDs)
+  //   external
+  //   override
+  // {
+  //   require(BoughtPredictions[msg.sender].length > 0, "No bought predictions");
+  //   for (uint256 index = 0; index < _UIDs.length; index++) {
+  //     if (
+  //       ActiveBoughtPredictions[_UIDs[index]][msg.sender] &&
+  //       Predictions[_UIDs[index]].state == State.Concluded
+  //     ) {
+  //       ActiveBoughtPredictions[_UIDs[index]][msg.sender] = false;
+  //     }
+  //   }
+  // }
 
-  function removeFromOwnedPredictions(uint256[] calldata _UIDs)
-    external
-    override
-  {
-    require(OwnedPredictions[msg.sender].length > 0, "No active predictions");
-    for (uint256 index = 0; index < _UIDs.length; index++) {
-      if (
-        ActiveSoldPredictions[_UIDs[index]][msg.sender] &&
-        Predictions[_UIDs[index]].state == State.Concluded
-      ) {
-        ActiveSoldPredictions[_UIDs[index]][msg.sender] = false;
-      }
-    }
-  }
+  // ///@dev Withdraw funds from the contract
+  // ///@param _amount Amount to be withdrawn
 
-  ///@notice Upon buyer successful prediction purchase, prediction ID is added to purchaser's predictions list
-  ///@dev User can remove prediction records [in batch] on successfull conclusion.
-  ///@param _UIDs list of prediction records to be removed
-  function removeFromBoughtPredictions(uint256[] calldata _UIDs)
-    external
-    override
-  {
-    require(BoughtPredictions[msg.sender].length > 0, "No bought predictions");
-    for (uint256 index = 0; index < _UIDs.length; index++) {
-      if (
-        ActiveBoughtPredictions[_UIDs[index]][msg.sender] &&
-        Predictions[_UIDs[index]].state == State.Concluded
-      ) {
-        ActiveBoughtPredictions[_UIDs[index]][msg.sender] = false;
-      }
-    }
-  }
+  // function withdrawFunds(uint256 _amount) external isOpen {
+  //   require(Balances[msg.sender] >= _amount, "Not enough balance");
+  //   Balances[msg.sender] -= _amount;
+  //   // attempt to send the funds to the recipient
+  //   (bool success, ) = payable(msg.sender).call{value: _amount}("");
+  //   // if it failed, update their credit balance so they can pull it later
+  //   if (!success) {
+  //     Balances[msg.sender] += _amount;
+  //   }
 
-  ///@dev Withdraw funds from the contract
-  ///@param _amount Amount to be withdrawn
+  //   emit Withdrawal(msg.sender, _amount, Balances[msg.sender]);
+  // }
 
-  function withdrawFunds(uint256 _amount) external isOpen {
-    require(Balances[msg.sender] >= _amount, "Not enough balance");
-    Balances[msg.sender] -= _amount;
-    // attempt to send the funds to the recipient
-    (bool success, ) = payable(msg.sender).call{value: _amount}("");
-    // if it failed, update their credit balance so they can pull it later
-    if (!success) {
-      Balances[msg.sender] += _amount;
-    }
+  // ///@notice Sellers can only create a verified username after surpassing a minimum number of won predictions
+  // ///@dev Seller create a verified username
+  // ///@param _username Supplied username
 
-    emit Withdrawal(msg.sender, _amount, Balances[msg.sender]);
-  }
+  // function createUsername(bytes32 _username) external {
+  //   require(
+  //     UserProfile[msg.sender].wonCount >= minWonCountForVerification,
+  //     "Not enough total predictions"
+  //   );
+  //   require(_username != bytes32(0), "Username cannot be null");
+  //   require(
+  //     UserProfile[msg.sender].username == bytes32(0),
+  //     "Username already exists"
+  //   );
+  //   UserProfile[msg.sender].username = _username;
+  //   emit UsernameCreated(msg.sender, _username);
+  // }
 
-  ///@notice Sellers can only create a verified username after surpassing a minimum number of won predictions
-  ///@dev Seller create a verified username
-  ///@param _username Supplied username
+  // ///@dev Withdraw locked funds to contract balance.
+  // ///@param _amount Amount to be withdrawn
 
-  function createUsername(bytes32 _username) external {
-    require(
-      UserProfile[msg.sender].wonCount >= minWonCountForVerification,
-      "Not enough total predictions"
-    );
-    require(_username != bytes32(0), "Username cannot be null");
-    require(
-      UserProfile[msg.sender].username == bytes32(0),
-      "Username already exists"
-    );
-    UserProfile[msg.sender].username = _username;
-    emit UsernameCreated(msg.sender, _username);
-  }
+  // function transferLockedFunds(uint256 _amount) external {
+  //   require(LockedFunds[msg.sender].amount > _amount, "Not enough balance");
+  //   require(
+  //     block.timestamp > LockedFunds[msg.sender].releaseDate,
+  //     "Assets still frozen"
+  //   );
+  //   LockedFunds[msg.sender].amount -= _amount;
+  //   Balances[msg.sender] += _amount;
 
-  ///@dev Withdraw locked funds to contract balance.
-  ///@param _amount Amount to be withdrawn
+  //   emit LockedFundsTransferred(
+  //     msg.sender,
+  //     _amount,
+  //     LockedFunds[msg.sender].amount
+  //   );
+  // }
 
-  function transferLockedFunds(uint256 _amount) external {
-    require(LockedFunds[msg.sender].amount > _amount, "Not enough balance");
-    require(
-      block.timestamp > LockedFunds[msg.sender].releaseDate,
-      "Assets still frozen"
-    );
-    LockedFunds[msg.sender].amount -= _amount;
-    Balances[msg.sender] += _amount;
+  // ///@notice in this case, the prediction didn't make it to the active state ( < 60% positive opening validations )
+  // ///@dev Miner withdraws NFT and staking fee
+  // ///@param _UID Prediction ID
+  // ///@param _tokenId NFT tokenID
 
-    emit LockedFundsTransferred(
-      msg.sender,
-      _amount,
-      LockedFunds[msg.sender].amount
-    );
-  }
+  // function withdrawMinerNftandStakingFee(uint256 _UID, uint256 _tokenId)
+  //   external
+  //   override
+  //   isNftOwner(_tokenId)
+  //   predictionEventAlreadyStarted(_UID)
+  // {
+  //   require(
+  //     Predictions[_UID].state == State.Inactive ||
+  //       Predictions[_UID].state == State.Denied,
+  //     "Prediction not inactive"
+  //   );
+  //   _returnNftAndStakingFee(_UID, _tokenId);
+  //   emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
+  // }
 
-  ///@notice in this case, the prediction didn't make it to the active state ( < 60% positive opening validations )
-  ///@dev Miner withdraws NFT and staking fee
-  ///@param _UID Prediction ID
-  ///@param _tokenId NFT tokenID
+  // ///@notice In this very rare case, a buyer purchases a prediction that didn't go active or was withdrawn
+  // ///@dev Buyer is refunded of purchase fee
+  // ///@param _UID Prediction ID
 
-  function withdrawMinerNftandStakingFee(uint256 _UID, uint256 _tokenId)
-    external
-    override
-    isNftOwner(_tokenId)
-    predictionEventAlreadyStarted(_UID)
-  {
-    require(
-      Predictions[_UID].state == State.Inactive ||
-        Predictions[_UID].state == State.Denied,
-      "Prediction not inactive"
-    );
-    _returnNftAndStakingFee(_UID, _tokenId);
-    emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
-  }
+  // function buyerRefund(uint256 _UID)
+  //   external
+  //   override
+  //   predictionEventAlreadyStarted(_UID)
+  // {
+  //   require(
+  //     Predictions[_UID].state == State.Inactive ||
+  //       Predictions[_UID].state == State.Denied,
+  //     "Prediction not inactive"
+  //   );
+  //   _returnBuyerPurchaseFee(_UID);
 
-  ///@notice In this very rare case, a buyer purchases a prediction that didn't go active or was withdrawn
-  ///@dev Buyer is refunded of purchase fee
-  ///@param _UID Prediction ID
+  //   emit PurchaseRefunded(_UID, msg.sender);
+  // }
 
-  function buyerRefund(uint256 _UID)
-    external
-    override
-    predictionEventAlreadyStarted(_UID)
-  {
-    require(
-      Predictions[_UID].state == State.Inactive ||
-        Predictions[_UID].state == State.Denied,
-      "Prediction not inactive"
-    );
-    _returnBuyerPurchaseFee(_UID);
+  // ///@notice In this case, seller didn't conclude transaction within the set window period
+  // ///@dev Refunds NFT and staking fee back to miner
+  // ///@param _UID Prediction ID
+  // ///@param _tokenId Miner NFT token Id
 
-    emit PurchaseRefunded(_UID, msg.sender);
-  }
+  // function inconclusiveMinerRefund(uint256 _UID, uint256 _tokenId)
+  //   external
+  //   override
+  //   predictionClosingOverdue(_UID)
+  //   isNftOwner(_tokenId)
+  //   predictionActive(_UID)
+  // {
+  //   _returnNftAndStakingFee(_UID, _tokenId);
+  //   emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
+  // }
 
-  ///@notice In this case, seller didn't conclude transaction within the set window period
-  ///@dev Refunds NFT and staking fee back to miner
-  ///@param _UID Prediction ID
-  ///@param _tokenId Miner NFT token Id
+  // ///@notice In this case, seller didn't conclude transaction within the set window period
+  // ///@dev Refunds buyer prediction purchase fee
+  // ///@param _UID Prediction ID
 
-  function inconclusiveMinerRefund(uint256 _UID, uint256 _tokenId)
-    external
-    override
-    predictionClosingOverdue(_UID)
-    isNftOwner(_tokenId)
-    predictionActive(_UID)
-  {
-    _returnNftAndStakingFee(_UID, _tokenId);
-    emit MinerNFTAndStakingFeeWithdrawn(_UID, _tokenId, msg.sender);
-  }
+  // function inconclusiveBuyerRefund(uint256 _UID)
+  //   external
+  //   override
+  //   predictionClosingOverdue(_UID)
+  //   predictionActive(_UID)
+  // {
+  //   _returnBuyerPurchaseFee(_UID);
 
-  ///@notice In this case, seller didn't conclude transaction within the set window period
-  ///@dev Refunds buyer prediction purchase fee
-  ///@param _UID Prediction ID
+  //   emit PurchaseRefunded(_UID, msg.sender);
+  // }
 
-  function inconclusiveBuyerRefund(uint256 _UID)
-    external
-    override
-    predictionClosingOverdue(_UID)
-    predictionActive(_UID)
-  {
-    _returnBuyerPurchaseFee(_UID);
+  // ///@notice In this case, Prediction got > 0% & < 60% positive opening validations so couldn't make it to active state
+  // ///@dev Refunds prediction seller's staking fee
+  // ///@param _UID Prediction ID
 
-    emit PurchaseRefunded(_UID, msg.sender);
-  }
-
-  ///@notice In this case, Prediction got > 0% & < 60% positive opening validations so couldn't make it to active state
-  ///@dev Refunds prediction seller's staking fee
-  ///@param _UID Prediction ID
-
-  function refundSellerStakingFee(uint256 _UID)
-    external
-    override
-    onlySeller(_UID)
-    predictionEventAlreadyStarted(_UID)
-  {
-    require(
-      Predictions[_UID].state == State.Inactive,
-      "Prediction not inactive"
-    );
-    require(
-      !Predictions[_UID].sellerStakingFeeRefunded,
-      "Staking fee already refunded"
-    );
-    Predictions[_UID].sellerStakingFeeRefunded = true;
-    Balances[Predictions[_UID].seller] += sellerStakingFee;
-    emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
-  }
+  // function refundSellerStakingFee(uint256 _UID)
+  //   external
+  //   override
+  //   onlySeller(_UID)
+  //   predictionEventAlreadyStarted(_UID)
+  // {
+  //   require(
+  //     Predictions[_UID].state == State.Inactive,
+  //     "Prediction not inactive"
+  //   );
+  //   require(
+  //     !Predictions[_UID].sellerStakingFeeRefunded,
+  //     "Staking fee already refunded"
+  //   );
+  //   Predictions[_UID].sellerStakingFeeRefunded = true;
+  //   Balances[Predictions[_UID].seller] += sellerStakingFee;
+  //   emit SellerStakingFeeRefunded(_UID, Predictions[_UID].seller);
+  // }
 
   function onERC721Received(
     address,

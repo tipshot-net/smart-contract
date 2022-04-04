@@ -3,13 +3,16 @@ pragma solidity ^0.8;
 import "./Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
+
+
 ///@notice This contract contains all state variables, modifiers and internal functions used by multiple contracts.
 
 abstract contract Base is Ownable {
+
   // ========== STATE VARIABLES ========== //
 
   ///@notice maps the generated UID to the prediction details
-  mapping(uint256 => PredictionData) internal Predictions;
+  mapping(uint256 => PredictionData) public Predictions;
 
   mapping(address => uint256) public Balances;
 
@@ -29,11 +32,9 @@ abstract contract Base is Ownable {
 
   uint16 internal constant CONSTANT_VALUE_MULTIPLIER = 1000;
 
-  uint16 internal constant SIX_HOURS = 21600;
+  uint16 internal constant HOURS = 3600;
 
-  uint16 internal constant TWELVE_HOURS = 43200;
-
-  uint32 internal constant TWENTY_FOUR_HOURS = 86400;
+  
 
   mapping(address => uint256[]) public BoughtPredictions;
 
@@ -58,7 +59,6 @@ abstract contract Base is Ownable {
 
   enum Status {
     Pending,
-    Complete,
     Won,
     Lost,
     Inconclusive
@@ -74,7 +74,6 @@ abstract contract Base is Ownable {
 
   enum ValidationStatus {
     Neutral,
-    Assigned,
     Positive,
     Negative
   }
@@ -87,7 +86,7 @@ abstract contract Base is Ownable {
   }
 
   struct Vote {
-    address miner;
+    bool assigned;
     ValidationStatus opening;
     ValidationStatus closing;
     bool stakingFeeRefunded;
@@ -95,29 +94,31 @@ abstract contract Base is Ownable {
   }
 
   struct PredictionData {
-    uint256 UID; // generated ID referencing to database prediction record
     address seller;
+    string ipfsHash;
+    string key;
+    uint256 createdAt;
     uint256 startTime; //start time of first predicted event
     uint256 endTime; //end time of last predicted event
     uint16 odd;
     uint256 price;
-    address[] buyersList;
+    //address[] buyersList;
     Vote[] votes;
-    mapping(address => PurchaseData) buyers;
+   // mapping(address => PurchaseData) buyers;
     mapping(uint256 => Vote) validators; //maps miners tokenId to vote data
     uint8 validatorCount;
-    uint8 positiveOpeningVoteCount;
-    uint8 negativeOpeningVoteCount;
-    uint8 positiveClosingVoteCount;
-    uint8 negativeClosingVoteCount;
-    uint64 buyCount; // total count of purchases
+    // uint8 positiveOpeningVoteCount;
+    // uint8 negativeOpeningVoteCount;
+    // uint8 positiveClosingVoteCount;
+    // uint8 negativeClosingVoteCount;
+    //uint64 buyCount; // total count of purchases
     Status status;
     State state;
-    uint256 totalEarned;
+    //uint256 totalEarned;
     bool sellerStakingFeeRefunded;
     bool withdrawnEarnings;
-    ValidationStatus winningOpeningVote;
-    ValidationStatus winningClosingVote;
+    // ValidationStatus winningOpeningVote;
+    // ValidationStatus winningClosingVote;
   }
 
   struct PurchaseData {
@@ -126,9 +127,10 @@ abstract contract Base is Ownable {
   }
 
   struct ValidationData {
+    uint256 id;
     uint256 tokenId;
-    uint256 UID;
-  }
+    string key;
+    }
 
   struct PredictionHistory {
     uint32 odd;
@@ -166,23 +168,24 @@ abstract contract Base is Ownable {
   ///@notice Seller requires needs to surpass 100 Won predictions to be eligible to create a verified username
   uint16 public minWonCountForVerification = 100; 
 
+
+
+  uint256[] public miningPool;
+
   /**********************************/
   /*╔═════════════════════════════╗
     ║          MODIFIERS          ║
     ╚═════════════════════════════╝*/
 
-  modifier uniqueId(uint256 UID) {
-    require(Predictions[UID].UID == 0, "UID already exists");
+  
+
+  modifier onlySeller(uint256 _id) {
+    require(msg.sender == Predictions[_id].seller, "Only prediction seller");
     _;
   }
 
-  modifier onlySeller(uint256 _UID) {
-    require(msg.sender == Predictions[_UID].seller, "Only prediction seller");
-    _;
-  }
-
-  modifier notSeller(uint256 _UID) {
-    require(msg.sender != Predictions[_UID].seller, "Seller Unauthorized!");
+  modifier notSeller(uint256 _id) {
+    require(msg.sender != Predictions[_id].seller, "Seller Unauthorized!");
     _;
   }
 
@@ -250,8 +253,8 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier notMined(uint256 _UID) {
-    require(Predictions[_UID].validatorCount == 0, "Prediction already mined");
+  modifier notMined(uint256 _id) {
+    require(Predictions[_id].validatorCount == 0, "Prediction already mined");
     _;
   }
 
@@ -262,7 +265,7 @@ abstract contract Base is Ownable {
 
   modifier predictionClosingOverdue(uint256 _UID) {
     require(
-      block.timestamp > Predictions[_UID].endTime + (TWENTY_FOUR_HOURS * 3),
+      block.timestamp > Predictions[_UID].endTime + (24 * HOURS),
       "Prediction closing not overdue"
     );
     _;
@@ -275,27 +278,65 @@ abstract contract Base is Ownable {
     ╚═════════════════════════════╝*/
   /**********************************/
 
-  ///@dev checks if prediction data meets requirements
+  
+
+function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a, "SafeMath: addition overflow");
+        return c;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting on
+     * overflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     *
+     * - Subtraction cannot overflow.
+     */
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b <= a, "SafeMath: subtraction overflow");
+        return a - b;
+    }
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on
+     * overflow.
+     *
+     * Counterpart to Solidity's `*` operator.
+     *
+     * Requirements:
+     *
+     * - Multiplication cannot overflow.
+     */
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a == 0) return 0;
+        uint256 c = a * b;
+        require(c / a == b, "SafeMath:multiplication overflow");
+        return c;
+    }
+
+    ///@dev checks if prediction data meets requirements
   /// @param _startTime Timestamp of the kickoff time of the first prediction event
   /// @param _endTime Timestamp of the proposed end of the last prediction event
   ///@return bool
 
-  function _sellerDoesMeetMinimumRequirements(
-    uint256 _startTime,
-    uint256 _endTime
-  ) internal view returns (bool) {
-    if (
-      _startTime < block.timestamp ||
-      _endTime < block.timestamp ||
-      _endTime < _startTime ||
-      _startTime > block.timestamp + TWENTY_FOUR_HOURS ||
-      (_endTime - _startTime) > (TWENTY_FOUR_HOURS * 2)
-    ) {
-      return false;
-    }
+    function _sellerDoesMeetMinimumRequirements(
+      uint256 _startTime,
+      uint256 _endTime
+    ) internal view returns (bool) {
+      require(_endTime > _startTime, "End time less than start time");
+      if (
+        add(block.timestamp, mul(8 , HOURS)) > _startTime ||
+        _startTime > add(block.timestamp, mul(24 , HOURS)) ||
+        sub(_endTime, _startTime) > mul(24 , HOURS)
+      ) {
+        return false;
+      }
 
-    return true;
-  }
+      return true;
+    }
 
   
 }

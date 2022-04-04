@@ -12,16 +12,13 @@ describe("set up contract", async function () {
   let contract: Predictsea;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;
-  let NFT_CONTRACT_ADDRESS: string;
+  
  
 
   beforeEach(async function () { 
     const Predictsea = await ethers.getContractFactory("Predictsea");
-    const PredictNFT = await ethers.getContractFactory("PredictNFT");
-    const NFT = await PredictNFT.deploy();
     [contractOwner, user1, user2] = await ethers.getSigners();
-    NFT_CONTRACT_ADDRESS = NFT.address;
-    contract = await Predictsea.deploy(NFT_CONTRACT_ADDRESS);
+    contract = await Predictsea.deploy();
     await contract.deployed();
   });
 
@@ -54,8 +51,19 @@ describe("set up contract", async function () {
         )).to.be.revertedWith("Unauthorized access");
     })
 
-    it("should have the correct NFT address", async function () {
-      expect(await contract.NFT_CONTRACT_ADDRESS()).to.equal(NFT_CONTRACT_ADDRESS)
+    it("should allow owner set NFT address", async function () {
+      const PredictNFT = await ethers.getContractFactory("PredictNFT");
+      const NFT = await PredictNFT.deploy();
+      await NFT.deployed();
+      await contract.connect(contractOwner).setNftAddress(NFT.address);
+      expect(await contract.NFT_CONTRACT_ADDRESS()).to.equal(NFT.address);
+    })
+
+    it("should revert if non owner set NFT address", async function () {
+      const PredictNFT = await ethers.getContractFactory("PredictNFT");
+      const NFT = await PredictNFT.deploy();
+      await NFT.deployed();
+      await expect(contract.connect(user1).setNftAddress(NFT.address)).to.be.revertedWith("Unauthorized access")
     })
 
     it("should have 100 set as it minimum won count for verification", async function () {

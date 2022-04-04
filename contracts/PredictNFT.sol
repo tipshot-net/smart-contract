@@ -26,7 +26,6 @@ contract PredictNFT is ERC721URIStorage, Ownable {
   /// @notice `owner` defaults to msg.sender on construction.
   constructor() ERC721("PredictSea", "PST") {
     owner = payable(msg.sender);
-    emit OwnershipTransferred(msg.sender);
   }
 
   ///@dev Whitelisted addresses can mint token after which the address is delisted
