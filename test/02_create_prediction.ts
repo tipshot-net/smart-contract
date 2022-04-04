@@ -192,6 +192,31 @@ describe("createPrediction function", async function () {
 
     })
 
+    it("creates multiple predictions in mining pool", async function () {
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const _startTime = latestBlock.timestamp + 43200;
+      const _endTime = _startTime + 86400;
+      for (let index = 0; index < 10; index++) {
+        await contract.connect(user1).createPrediction(
+          "hellothere123",
+          "hithere123",
+          _startTime,
+          _endTime,
+          2,
+          ethers.utils.parseEther("10.0"),
+          {
+            value: state.miningFee.add(state.sellerStakingFee)
+          })
+        
+      }
+
+      expect(await contract.connect(user1).getMiningPoolLength()).to.equal(10);
+      expect(await contract.miningPool(2)).to.equal(3)
+      expect(await contract.miningPool(4)).to.equal(5)
+      expect(await contract.miningPool(8)).to.equal(9)
+        
+    })
+
   })
 
 });

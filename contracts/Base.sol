@@ -338,5 +338,9 @@ function add(uint256 a, uint256 b) internal pure returns (uint256) {
       return true;
     }
 
+  function getMiningPoolLength() public view returns(uint256 length) {
+    return miningPool.length;
+  }
+
   
 }
