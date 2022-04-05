@@ -42,9 +42,6 @@ abstract contract Seller is Base {
     Predictions[_id].odd = _odd;
     Predictions[_id].price = _price;
 
-    miningPool.push(_id);
-
-    OwnedPredictions[msg.sender].push(_id);
   }
 
   // /@dev Calculate and updates sellers performance records
@@ -118,27 +115,27 @@ abstract contract Seller is Base {
   // ///@dev Refund seller staking fee -> prediction doesn't meet minimum POV (60%)
   // ///@param _prediction Instance of the prediction data
 
-  // function _refundSellerStakingFee(PredictionData storage _prediction)
-  //   internal
-  // {
-  //   if (
-  //     _prediction.state != State.Denied && !_prediction.sellerStakingFeeRefunded
-  //   ) {
-  //     _prediction.sellerStakingFeeRefunded = true;
-  //     Balances[_prediction.seller] += sellerStakingFee;
-  //   }
-  // }
+  function _refundSellerStakingFee(PredictionData storage _prediction)
+    internal
+  {
+    if (
+      _prediction.state != State.Rejected && !_prediction.sellerStakingFeeRefunded
+    ) {
+      _prediction.sellerStakingFeeRefunded = true;
+      Balances[_prediction.seller] += sellerStakingFee;
+    }
+  }
 
-  // ///@dev Calculates rememant of mining fee (each miner received 1/5 of miningFee after successful validation)
-  // ///@param _UID Prediction ID
-  // ///@return remaining mining fee
+  ///@dev Calculates rememant of mining fee (each miner received 1/5 of miningFee after successful validation)
+  ///@param _UID Prediction ID
+  ///@return remaining mining fee
 
-  // function remenantOfMiningFee(uint256 _UID) internal view returns (uint256) {
-  //   uint256 miningFeePerValidator = miningFee / MAX_VALIDATORS;
-  //   uint256 totalSpent = miningFeePerValidator *
-  //     Predictions[_UID].validatorCount;
-  //   return miningFee - totalSpent;
-  // }
+  function remenantOfMiningFee(uint256 _UID) internal view returns (uint256) {
+    uint256 miningFeePerValidator = miningFee / MAX_VALIDATORS;
+    uint256 totalSpent = miningFeePerValidator *
+      Predictions[_UID].validatorCount;
+    return miningFee - totalSpent;
+  }
 
   // ///@dev Sets Prediction outcome (Win/Loss)
   // ///@param _prediction Instance of the prediction data
@@ -395,17 +392,17 @@ abstract contract Seller is Base {
     uint256 _price
   ) external payable virtual;
 
-  // function updatePrediction(
-  //   uint256 _id,
-  //   string memory _ipfsHash,
-  //   string memory _key,
-  //   uint256 _startTime,
-  //   uint256 _endTime,
-  //   uint16 _odd,
-  //   uint256 _price
-  // ) external virtual;
+  function updatePrediction(
+    uint256 _id,
+    string memory _ipfsHash,
+    string memory _key,
+    uint256 _startTime,
+    uint256 _endTime,
+    uint16 _odd,
+    uint256 _price
+  ) external virtual;
 
-  // function withdrawPrediction(uint256 _UID) external virtual;
+  function withdrawPrediction(uint256 _UID) external virtual;
 
   // function refundSellerStakingFee(uint256 _UID) external virtual;
 

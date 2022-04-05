@@ -20,7 +20,7 @@ abstract contract Miner is Base {
     
     require(pointer <= miningPool.length, "Mining pool currently empty");
     require(block.timestamp >= (Predictions[current].createdAt + (4 * HOURS)), "Not available for mining");
-    Predictions[current].validators[_tokenId].assigned = true;
+    Validations[_tokenId][current].assigned = true;
     Predictions[current].validatorCount += 1;
     OwnedValidations[msg.sender].push(
       ValidationData({ id: current, tokenId: _tokenId, key: _key})
@@ -206,10 +206,10 @@ abstract contract Miner is Base {
     // }
   }
 
-  ///@dev View function to get the a miner's opening vote for a particular prediction
-  ///@param _UID Prediction ID
-  ///@param _tokenId NFT token ID
-  ///@return _openingVote -> miner's prediction opening vote
+  // /@dev View function to get the a miner's opening vote for a particular prediction
+  // /@param _UID Prediction ID
+  // /@param _tokenId NFT token ID
+  // /@return _openingVote -> miner's prediction opening vote
 
   // function _getMinerOpeningPredictionVote(uint256 _UID, uint256 _tokenId)
   //   internal
@@ -264,10 +264,10 @@ abstract contract Miner is Base {
   //   LockedFunds[_user].totalInstances += 1;
   // }
 
-  // function requestValidation(
-  //   uint256 _tokenId,
-  //   string memory _key
-  // ) external payable virtual;
+  function requestValidation(
+    uint256 _tokenId,
+    string memory _key
+  ) external payable virtual;
 
   // // function submitOpeningVote(
   // //   uint256 _UID,

@@ -157,7 +157,12 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     _predictionIds.increment();
     uint256 _id = _predictionIds.current();
 
-   _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
+    _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
+
+    miningPool.push(_id);
+
+    OwnedPredictions[msg.sender].push(_id);
+
     emit PredictionCreated(
       msg.sender,
       _id,
@@ -166,68 +171,70 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
-  // /@notice Seller can withdraw prediction only before any miner has mined it.
-  // /@param _id prediction Id
+  ///@notice Seller can withdraw prediction only before any miner has mined it.
+  ///@param _id prediction Id
 
-  // function withdrawPrediction(uint256 _id)
-  //   external
-  //   override
-  //   onlySeller(_id)
-  //   notMined(_id)
-  // {
-  //   require(
-  //     Predictions[_id].state != State.Withdrawn,
-  //     "Prediction already withdrawn!"
-  //   );
-  //   Predictions[_id].state = State.Withdrawn;
-  //   delete miningPool[_id - 1]; //delete prediction entry from mining pool
-  //   _refundSellerStakingFee(Predictions[_id]);
-  //   Balances[msg.sender] += remenantOfMiningFee(_id); //Refund mining fee
-  //   emit PredictionWithdrawn(_id, msg.sender);
-  // }
+  function withdrawPrediction(uint256 _id)
+    external
+    override
+    onlySeller(_id)
+    notMined(_id)
+  {
+    require(
+      Predictions[_id].state != State.Withdrawn,
+      "Prediction already withdrawn!"
+    );
+    Predictions[_id].state = State.Withdrawn;
+    delete miningPool[_id - 1]; //delete prediction entry from mining pool
+    _refundSellerStakingFee(Predictions[_id]);
+    Balances[msg.sender] += remenantOfMiningFee(_id); //Refund mining fee
+    emit PredictionWithdrawn(_id, msg.sender);
+  }
 
-  // ///@notice Prediction info can only be updated only before any miner has mined it.
-  // function updatePrediction(
-  //   uint256 _id,
-  //   string memory _ipfsHash,
-  //   string memory _key,
-  //   uint256 _startTime,
-  //   uint256 _endTime,
-  //   uint16 _odd,
-  //   uint256 _price
-  // ) external override onlySeller(_id) notMined(_id) {
-  //   _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
+  ///@notice Prediction info can only be updated only before any miner has mined it.
+  function updatePrediction(
+    uint256 _id,
+    string memory _ipfsHash,
+    string memory _key,
+    uint256 _startTime,
+    uint256 _endTime,
+    uint16 _odd,
+    uint256 _price
+  ) external override onlySeller(_id) notMined(_id) {
+    _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
-  //   emit PredictionUpdated(
-  //      msg.sender,
-  //     _id,
-  //    _ipfsHash,
-  //    _key
-  //   );
-  // }
+    emit PredictionUpdated(
+       msg.sender,
+      _id,
+     _ipfsHash,
+     _key
+    );
+  }
 
   
 
-  // ///@dev miner can place validation request and pay staking fee by sending it in the transaction
-  // ///@param _tokenId NFT token Id
-  // function requestValidation(
-  //   uint256 _tokenId,
-  //   string memory _key
-  // ) external payable override {
-  //   if(msg.value < minerStakingFee){
-  //     require(Balances[msg.sender] >= (minerStakingFee - msg.value), "Insufficient balance");
-  //     Balances[msg.sender] -= (minerStakingFee - msg.value);
-  //   }else{
-  //     require(msg.value >= minerStakingFee, "Not enough ether");
-  //     uint256 bal = msg.value - minerStakingFee;
-  //     if (bal > 0) {
-  //       Balances[msg.sender] += bal;
-  //     }
-  //   }
-  //   _transferNftToContract(_tokenId);
-  //   uint256 _id = _assignPredictionToMiner(_tokenId, _key);
-  //   emit ValidationAssigned(msg.sender, _id, _tokenId);
-  // }
+  ///@dev miner can place validation request and pay staking fee by sending it in the transaction
+  ///@param _tokenId NFT token Id
+  ///@param _key encrypted purchase key
+  
+  function requestValidation(
+    uint256 _tokenId,
+    string memory _key
+  ) external payable override {
+    if(msg.value < minerStakingFee){
+      require(Balances[msg.sender] >= (minerStakingFee - msg.value), "Insufficient balance");
+      Balances[msg.sender] -= (minerStakingFee - msg.value);
+    }else{
+      require(msg.value >= minerStakingFee, "Not enough ether");
+      uint256 bal = msg.value - minerStakingFee;
+      if (bal > 0) {
+        Balances[msg.sender] += bal;
+      }
+    }
+    _transferNftToContract(_tokenId);
+    uint256 _id = _assignPredictionToMiner(_tokenId, _key);
+    emit ValidationAssigned(msg.sender, _id, _tokenId);
+  }
 
   // /@dev miner submits opening validation decision on seller's prediction
   // /@param _UID Prediction ID

@@ -14,6 +14,9 @@ abstract contract Base is Ownable {
   ///@notice maps the generated UID to the prediction details
   mapping(uint256 => PredictionData) public Predictions;
 
+  //      tokenId          prediction id
+  mapping(uint256 => mapping(uint256 => Vote)) public Validations; //maps miners tokenId to vote data
+
   mapping(address => uint256) public Balances;
 
   mapping(address => LockedFundsData) public LockedFunds;
@@ -67,7 +70,7 @@ abstract contract Base is Ownable {
   enum State {
     Inactive,
     Withdrawn,
-    Denied,
+    Rejected,
     Active,
     Concluded
   }
@@ -86,6 +89,7 @@ abstract contract Base is Ownable {
   }
 
   struct Vote {
+    uint256 id; //predicition id
     bool assigned;
     ValidationStatus opening;
     ValidationStatus closing;
@@ -105,7 +109,6 @@ abstract contract Base is Ownable {
     //address[] buyersList;
     Vote[] votes;
    // mapping(address => PurchaseData) buyers;
-    mapping(uint256 => Vote) validators; //maps miners tokenId to vote data
     uint8 validatorCount;
     // uint8 positiveOpeningVoteCount;
     // uint8 negativeOpeningVoteCount;
@@ -236,14 +239,6 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier newValidationRequest(uint256 _UID, uint256 _tokenId) {
-    require(
-      Predictions[_UID].validators[_tokenId].opening ==
-        ValidationStatus.Neutral,
-      "Invalid validation request"
-    );
-    _;
-  }
 
   modifier predictionActive(uint256 _UID) {
     require(
@@ -340,6 +335,14 @@ function add(uint256 a, uint256 b) internal pure returns (uint256) {
 
   function getMiningPoolLength() public view returns(uint256 length) {
     return miningPool.length;
+  }
+
+  function getOwnedPredictionsLength(address seller) public view returns(uint256 length) {
+    return OwnedPredictions[seller].length;
+  }
+
+  function getOwnedValidationsLength(address miner) public view returns(uint256 length) {
+    return OwnedValidations[miner].length;
   }
 
   

@@ -59,6 +59,8 @@ describe("createPrediction function", async function () {
     expect(current.price).to.equal(ethers.utils.parseEther("10.0"));
     expect(await contract.miningPool(0)).to.equal(1)
     expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1);
+    expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1);
+    expect(await contract.connect(user1).getOwnedPredictionsLength(user1.address)).to.equal(1);
      
     })
 
