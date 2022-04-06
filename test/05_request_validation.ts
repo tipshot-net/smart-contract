@@ -287,6 +287,9 @@ describe("requestValidation function", async function () {
       expect((await contract.Predictions(1)).validatorCount).to.equal(5)
       expect((await contract.Predictions(2)).validatorCount).to.equal(1)
       expect((await contract.OwnedValidations(miner6.address, 0)).key).to.equal("miner6_key")
+      expect(await contract.getMiningPoolLength()).to.equal(2)
+      expect(await contract.miningPool(0)).to.equal(0)
+      expect(await contract.miningPool(1)).to.equal(2)
 
 
     })
