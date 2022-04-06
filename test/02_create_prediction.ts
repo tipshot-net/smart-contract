@@ -140,7 +140,7 @@ describe("createPrediction function", async function () {
     it("reverts if sent eth is less than (miningFee + sellerStakingFee)", async function () {
       const latestBlock = await ethers.provider.getBlock("latest");
       const _startTime = latestBlock.timestamp + 43200;
-      const _endTime = _startTime + 180000;
+      const _endTime = _startTime + 86400;
 
       await expect(contract.connect(user1).createPrediction(
         "hellothere123",
@@ -152,6 +152,25 @@ describe("createPrediction function", async function () {
         {
           value: state.miningFee.add(state.sellerStakingFee).sub(ethers.utils.parseEther("2.0"))
         })).to.be.revertedWith("Insufficient balance")
+    })
+
+    it("deposits excess fee in wallet", async function () {
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const _startTime = latestBlock.timestamp + 43200;
+      const _endTime = _startTime + 86400;
+
+      await contract.connect(user1).createPrediction(
+        "hellothere123",
+        "hithere123",
+        _startTime,
+        _endTime,
+        2,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee.add(state.sellerStakingFee).add(ethers.utils.parseEther("2.0"))
+        })
+
+      expect(await contract.Balances(user1.address)).to.equal(ethers.utils.parseEther("2.0"))
     })
 
     it("deducts from wallet balance if sent eth is not enough", async function () {

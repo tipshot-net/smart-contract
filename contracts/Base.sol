@@ -89,7 +89,6 @@ abstract contract Base is Ownable {
   }
 
   struct Vote {
-    uint256 id; //predicition id
     bool assigned;
     ValidationStatus opening;
     ValidationStatus closing;
@@ -346,4 +345,5 @@ function add(uint256 a, uint256 b) internal pure returns (uint256) {
   }
 
   
+
 }

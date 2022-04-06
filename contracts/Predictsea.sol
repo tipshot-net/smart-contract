@@ -231,6 +231,9 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
         Balances[msg.sender] += bal;
       }
     }
+    
+    require(miningPool.length > 0, "mining pool empty");
+
     _transferNftToContract(_tokenId);
     uint256 _id = _assignPredictionToMiner(_tokenId, _key);
     emit ValidationAssigned(msg.sender, _id, _tokenId);

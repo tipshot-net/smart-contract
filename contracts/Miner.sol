@@ -3,6 +3,7 @@
 
 pragma solidity ^0.8;
 
+import "hardhat/console.sol";
 import "./Base.sol";
 
 abstract contract Miner is Base {
@@ -12,13 +13,14 @@ abstract contract Miner is Base {
 
   function _assignPredictionToMiner(uint256 _tokenId, string memory _key) internal returns(uint256) {
     uint256 current = pointer + 1;
+  
     //if prediction withdrawn or prediction first game starting in less than 2 hours => skip;
     if(miningPool[pointer] == 0 || ((block.timestamp + (2 * HOURS)) > Predictions[current].startTime )){
-      pointer += 1;
-      revert("Please try again");
+      pointer = next(pointer);
+      current = pointer + 1;
     }
-    
-    require(pointer <= miningPool.length, "Mining pool currently empty");
+   
+    require(pointer < miningPool.length, "Mining pool currently empty");
     require(block.timestamp >= (Predictions[current].createdAt + (4 * HOURS)), "Not available for mining");
     Validations[_tokenId][current].assigned = true;
     Predictions[current].validatorCount += 1;
@@ -27,10 +29,22 @@ abstract contract Miner is Base {
     );
     uint256 _id = current;
     if(Predictions[current].validatorCount == MAX_VALIDATORS){
+      delete miningPool[pointer];
       pointer += 1;
     }
 
     return _id;
+  }
+
+  function next(uint256 point) internal view returns(uint256) {
+    uint x = point + 1;
+    while(x < miningPool.length){
+      if(miningPool[x] != 0){
+        break;
+      }
+      x += 1;
+    }
+    return x;
   }
 
   /*╔══════════════════════════════╗
@@ -51,7 +65,7 @@ abstract contract Miner is Base {
     } else {
       require(
         IERC721(NFT_CONTRACT_ADDRESS).ownerOf(_tokenId) == address(this),
-        "Seller doesn't own NFT"
+        "Doesn't own NFT"
       );
     }
 
