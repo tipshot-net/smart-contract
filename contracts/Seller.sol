@@ -111,31 +111,9 @@ abstract contract Seller is Base {
   //     .lifetimeProfitability = _getLifetimeProfitability(_prediction.seller);
   // }
 
-  // ///@notice POV > 1  & POV < 3
-  // ///@dev Refund seller staking fee -> prediction doesn't meet minimum POV (60%)
-  // ///@param _prediction Instance of the prediction data
+  
 
-  function _refundSellerStakingFee(PredictionData storage _prediction)
-    internal
-  {
-    if (
-      _prediction.state != State.Rejected && !_prediction.sellerStakingFeeRefunded
-    ) {
-      _prediction.sellerStakingFeeRefunded = true;
-      Balances[_prediction.seller] += sellerStakingFee;
-    }
-  }
-
-  ///@dev Calculates rememant of mining fee (each miner received 1/5 of miningFee after successful validation)
-  ///@param _UID Prediction ID
-  ///@return remaining mining fee
-
-  function remenantOfMiningFee(uint256 _UID) internal view returns (uint256) {
-    uint256 miningFeePerValidator = miningFee / MAX_VALIDATORS;
-    uint256 totalSpent = miningFeePerValidator *
-      Predictions[_UID].validatorCount;
-    return miningFee - totalSpent;
-  }
+  
 
   // ///@dev Sets Prediction outcome (Win/Loss)
   // ///@param _prediction Instance of the prediction data

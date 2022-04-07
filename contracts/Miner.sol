@@ -23,12 +23,12 @@ abstract contract Miner is Base {
     require(pointer < miningPool.length, "Mining pool currently empty");
     require(block.timestamp >= (Predictions[current].createdAt + (4 * HOURS)), "Not available for mining");
     Validations[_tokenId][current].assigned = true;
-    Predictions[current].validatorCount += 1;
+    PredictionStats[current].validatorCount += 1;
     OwnedValidations[msg.sender].push(
       ValidationData({ id: current, tokenId: _tokenId, key: _key})
     );
     uint256 _id = current;
-    if(Predictions[current].validatorCount == MAX_VALIDATORS){
+    if(PredictionStats[current].validatorCount == MAX_VALIDATORS){
       delete miningPool[pointer];
       pointer += 1;
     }
@@ -95,58 +95,8 @@ abstract contract Miner is Base {
     TokenOwner[_tokenId] = address(0);
   }
 
-  ///@dev Checks if all requirements for a miner to cast opening vote on prediction are satisfied
-  ///@param _tokenId NFT token id
-  ///@param _UID ID of requested prediction
-  ///@return _vote -> miners opening vote details
 
-  // function _setUpOpeningVote(uint256 _UID, uint256 _tokenId)
-  //   internal
-  //   view
-  //   isNftOwner(_UID)
-  //   returns (Vote storage _vote)
-  // {
-    // require(
-    //   Predictions[_UID].validators[_tokenId].opening ==
-    //     ValidationStatus.Assigned,
-    //   "Vote already cast!"
-    // );
-    // require(
-    //   Predictions[_UID].startTime > block.timestamp,
-    //   "Event already started"
-    // );
-  //    return Predictions[_UID].validators[_tokenId];
-  // }
-
-  // ///@dev Checks if all requirements for a miner to cast closing vote on prediction are satisfied
-  // ///@param _tokenId NFT token id
-  // ///@param _UID ID of requested prediction
-  // ///@return _vote -> miners closing vote details
-
-  // function _setUpClosingVote(uint256 _UID, uint256 _tokenId)
-  //   internal
-  //   view
-  //   isNftOwner(_tokenId)
-  //   returns (Vote storage _vote)
-  // {
-  //   // require(
-  //   //   Predictions[_UID].validators[_tokenId].miner == msg.sender,
-  //   //   "Not assigned to miner"
-  //   // );
-  //   // require(
-  //   //   Predictions[_UID].validators[_tokenId].closing ==
-  //   //     ValidationStatus.Assigned,
-  //   //   "Vote already cast!"
-  //   // );
-  //   // /**Cool down period is 6hrs (21600 secs) after the game ends */
-  //   // require(
-  //   //   (block.timestamp > Predictions[_UID].endTime + SIX_HOURS &&
-  //   //     block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS),
-  //   //   "Event not cooled down"
-  //   // );
-  //   return Predictions[_UID].validators[_tokenId];
-  // }
-
+  
   ///@dev Calculate majority opening vote
   ///@param _UID Prediction ID
   ///@return status -> majority opening consensus
@@ -283,23 +233,18 @@ abstract contract Miner is Base {
     string memory _key
   ) external payable virtual;
 
-  // // function submitOpeningVote(
-  // //   uint256 _UID,
-  // //   uint256 _tokenId,
-  // //   uint8 _option
-  // // ) external virtual;
+  function submitOpeningVote(
+    uint256 _id,
+    uint256 _tokenId,
+    uint8 _option
+  ) external virtual;
 
-  // // function updateMinerOpeningVote(
-  // //   uint256 _UID,
-  // //   uint256 _tokenId,
-  // //   uint8 _vote
-  // // ) external virtual;
 
-  // // function submitClosingVote(
-  // //   uint256 _UID,
-  // //   uint256 _tokenId,
-  // //   uint8 _option
-  // // ) external virtual;
+  function submitClosingVote(
+    uint256 _id,
+    uint256 _tokenId,
+    uint8 _option
+  ) external virtual;
 
   // // function updateMinerClosingVote(
   // //   uint256 _UID,

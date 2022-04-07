@@ -45,8 +45,8 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     uint256 indexed id,
     uint256 indexed tokenId
   );
-  event VoteSubmitted(
-    uint256 indexed UID,
+  event OpeningVoteSubmitted(
+    uint256 indexed id,
     uint256 indexed tokenId,
     uint8 option,
     State state
@@ -147,7 +147,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
       require(Balances[msg.sender] >= (total - msg.value), "Insufficient balance");
       Balances[msg.sender] -= (total - msg.value);
     }else{
-      require(msg.value >= total, "Not enough ether");
       uint256 bal = msg.value - total;
       if (bal > 0) {
         Balances[msg.sender] += bal;
@@ -181,13 +180,13 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     notMined(_id)
   {
     require(
-      Predictions[_id].state != State.Withdrawn,
+      PredictionStats[_id].state != State.Withdrawn,
       "Prediction already withdrawn!"
     );
-    Predictions[_id].state = State.Withdrawn;
+    PredictionStats[_id].state = State.Withdrawn;
     delete miningPool[_id - 1]; //delete prediction entry from mining pool
-    _refundSellerStakingFee(Predictions[_id]);
-    Balances[msg.sender] += remenantOfMiningFee(_id); //Refund mining fee
+    Balances[Predictions[_id].seller] += sellerStakingFee;
+    Balances[Predictions[_id].seller] += miningFee; //Refund mining fee
     emit PredictionWithdrawn(_id, msg.sender);
   }
 
@@ -211,8 +210,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
   }
 
-  
-
   ///@dev miner can place validation request and pay staking fee by sending it in the transaction
   ///@param _tokenId NFT token Id
   ///@param _key encrypted purchase key
@@ -225,13 +222,12 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
       require(Balances[msg.sender] >= (minerStakingFee - msg.value), "Insufficient balance");
       Balances[msg.sender] -= (minerStakingFee - msg.value);
     }else{
-      require(msg.value >= minerStakingFee, "Not enough ether");
       uint256 bal = msg.value - minerStakingFee;
       if (bal > 0) {
         Balances[msg.sender] += bal;
       }
     }
-    
+
     require(miningPool.length > 0, "mining pool empty");
 
     _transferNftToContract(_tokenId);
@@ -239,198 +235,119 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit ValidationAssigned(msg.sender, _id, _tokenId);
   }
 
-  // /@dev miner submits opening validation decision on seller's prediction
-  // /@param _UID Prediction ID
-  // /@param _tokenId Miner's NFT token Id
-  // /@param _option Miner's validation decision
+  function addToActivePool(uint256 _id) internal {
 
-  // function submitOpeningVote(
-  //   uint256 _UID,
-  //   uint256 _tokenId,
-  //   uint8 _option
-  // ) external override {
-  //   require(_option == 1 || _option == 2, "Invalid validation option");
+  }
 
-  //   Vote storage _vote = _setUpOpeningVote(_UID, _tokenId);
-  //   if (_option == 1) {
-  //     _vote.opening = ValidationStatus.Positive;
-  //     Predictions[_UID].positiveOpeningVoteCount += 1;
-  //   } else {
-  //     _vote.opening = ValidationStatus.Negative;
-  //     Predictions[_UID].negativeOpeningVoteCount += 1;
-  //   }
+  ///@dev miner submits opening validation decision on seller's prediction
+  ///@param _id Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _option Miner's validation decision
 
-  //   if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
-  //     //prediction receives 60% positive validations
-  //     Predictions[_UID].state = State.Active;
-  //   }
-  //   if (Predictions[_UID].negativeOpeningVoteCount >= EIGHTY_PERCENT) {
-  //     Predictions[_UID].state = State.Denied;
-  //     lockFunds(Predictions[_UID].seller, sellerStakingFee);
-  //   }
+  function submitOpeningVote(
+    uint256 _id,
+    uint256 _tokenId,
+    uint8 _option
+  ) external override predictionEventNotStarted(_id) isNftOwner(_tokenId) {
+    require(_option == 1 || _option == 2, "Invalid validation option");
+    require(
+      Validations[_tokenId][_id].assigned == true, 
+      "Not assigned to miner"
+    );
+    require(
+      Validations[_tokenId][_id].opening == ValidationStatus.Neutral, 
+      "Opening vote already cast"
+    );
+    if (_option == 1) {
+      Validations[_tokenId][_id].opening = ValidationStatus.Positive;
+      PredictionStats[_id].upvoteCount += 1;
+    } else {
+      Validations[_tokenId][_id].opening = ValidationStatus.Negative;
+      PredictionStats[_id].downvoteCount += 1;
+    }
 
-  //   uint256 minerBonus = miningFee / MAX_VALIDATORS;
-  //   Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
+    if (PredictionStats[_id].upvoteCount == SIXTY_PERCENT) {
+      //prediction receives 60% positive validations
+      PredictionStats[_id].state = State.Active;
+    }
 
-  //   emit VoteSubmitted(_UID, _tokenId, _option, Predictions[_UID].state);
-  // }
+    if (PredictionStats[_id].downvoteCount == SIXTY_PERCENT) {
+      //prediction receives 60% negative validations
+      PredictionStats[_id].state = State.Rejected;
+    }
 
-  // /@dev miner updates opening validation decision on seller's prediction
-  // /@param _UID Prediction ID
-  // /@param _tokenId Miner's NFT token Id
-  // /@param _vote Miner's validation decision
+    uint256 minerBonus = miningFee / MAX_VALIDATORS;
+    Balances[msg.sender] += minerBonus; //miner recieves mining bonus.
 
-  // function updateMinerOpeningVote(
-  //   uint256 _UID,
-  //   uint256 _tokenId,
-  //   uint8 _vote
-  // ) external override isNftOwner(_tokenId) {
-    // require(
-    //   Predictions[_UID].state == State.Inactive,
-    //   "Prediction already active"
-    // );
-    // ValidationStatus _status = _getMinerOpeningPredictionVote(_UID, _tokenId);
-    // require(
-    //   _status != ValidationStatus.Neutral &&
-    //     _status != ValidationStatus.Assigned,
-    //   "Didn't vote previously"
-    // );
-    // require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
-    // if (_vote == 2) {
-    //   require(
-    //     _status != ValidationStatus.Positive,
-    //     "same as previous vote option"
-    //   );
-    //   Predictions[_UID].validators[_tokenId].opening = ValidationStatus
-    //     .Positive;
-    //   Predictions[_UID].negativeOpeningVoteCount -= 1;
-    //   Predictions[_UID].positiveOpeningVoteCount += 1;
-    // } else {
-    //   require(
-    //     _status != ValidationStatus.Negative,
-    //     "same as previous vote option"
-    //   );
-    //   Predictions[_UID].validators[_tokenId].opening = ValidationStatus
-    //     .Negative;
-    //   Predictions[_UID].positiveOpeningVoteCount -= 1;
-    //   Predictions[_UID].negativeOpeningVoteCount += 1;
-    // }
+    emit OpeningVoteSubmitted(_id, _tokenId, _option, PredictionStats[_id].state);
+  }
 
-    // if (Predictions[_UID].positiveOpeningVoteCount == SIXTY_PERCENT) {
-    //   //prediction receives 60% positive validations
-    //   Predictions[_UID].state = State.Active;
-    // }
-    // emit MinerOpeningVoteUpdated(_UID, _tokenId, _vote);
-  //}
 
-  // /@dev Users can purchase prediction using wallet balance
-  // /@param _UID Prediction ID
-  // /@param email Email address of purchaser
+  ///@dev Users can purchase prediction by sending purchase fee in the transaction
+  ///@param _id prediction ID
+  ///@param _key encrypted key of purchaser
 
-  // function purchasePredictionWithWallet(uint256 _UID, string calldata email)
-  //   external
-  //   override
-  // {
-  //   require(
-  //     Balances[msg.sender] >= Predictions[_UID].price,
-  //     "Insufficient balance"
-  //   );
-  //   Balances[msg.sender] -= Predictions[_UID].price;
-  //   _setUpPurchase(_UID);
-  //   emit PredictionPurchased(_UID, msg.sender, email);
-  // }
+  function purchasePrediction(uint256 _id, string memory _key)
+    external
+    payable
+    override
+    predictionEventNotStarted(_id)
+    predictionActive(_id)
+  {
+    if(msg.value < Predictions[_id].price){
+      require(Balances[msg.sender] >= (Predictions[_id].price - msg.value), "Insufficient balance");
+      Balances[msg.sender] -= (Predictions[_id].price - msg.value);
+    }else{
+      uint256 bal = msg.value - Predictions[_id].price;
+      if (bal > 0) {
+        Balances[msg.sender] += bal;
+      }
+    }
+    Purchases[msg.sender][_id].purchased = true;
+    PredictionStats[_id].buyCount += 1;
+    BoughtPredictions[msg.sender].push(_id);
+    emit PredictionPurchased(_id, msg.sender, _key);
+  }
 
-  // ///@dev Users can purchase prediction by sending purchase fee in the transaction
-  // ///@param _UID Prediction ID
-  // ///@param email Email address of purchaser
 
-  // function purchasePrediction(uint256 _UID, string calldata email)
-  //   external
-  //   payable
-  //   override
-  // {
-  //   require(msg.value >= Predictions[_UID].price, "Not enough ether");
-  //   _setUpPurchase(_UID);
-  //   emit PredictionPurchased(_UID, msg.sender, email);
-  // }
+  ///@dev miner submits closing validation decision on seller's prediction.
+  ///@param _id Prediction ID
+  ///@param _tokenId Miner's NFT token Id
+  ///@param _option Miner's validation decision
 
-  // /**Cool down period is 6hrs (21600 secs) after the game ends */
-  // ///@notice Prediction must have ended and cooled down to call this function
-  // ///@dev miner submits closing validation decision on seller's prediction.
-  // ///@param _UID Prediction ID
-  // ///@param _tokenId Miner's NFT token Id
-  // ///@param _option Miner's validation decision
+  function submitClosingVote(
+    uint256 _id,
+    uint256 _tokenId,
+    uint8 _option
+  ) external override {
+    require(_option == 1 || _option == 2, "Invalid validation option");
+    require(
+      (block.timestamp > Predictions[_id].endTime + (2 * HOURS) &&
+        block.timestamp < Predictions[_id].endTime + (6 * HOURS)),
+      "Can't cast closing vote now"
+    );
 
-  // // function submitClosingVote(
-  // //   uint256 _UID,
-  // //   uint256 _tokenId,
-  // //   uint8 _option
-  // // ) external override {
-  // //   require(_option == 1 || _option == 2, "Invalid validation option");
+    require(
+      Validations[_tokenId][_id].assigned == true, 
+      "Not assigned to miner"
+    );
+    require(
+      Validations[_tokenId][_id].closing == ValidationStatus.Neutral, 
+      "Opening vote already cast"
+    );
 
-  // //   Vote storage _vote = _setUpClosingVote(_UID, _tokenId);
-  // //   if (_option == 1) {
-  // //     _vote.closing = ValidationStatus.Positive;
-  // //     Predictions[_UID].positiveClosingVoteCount += 1;
-  // //   } else {
-  // //     _vote.closing = ValidationStatus.Negative;
-  // //     Predictions[_UID].negativeClosingVoteCount += 1;
-  // //   }
-  // //   Predictions[_UID].votes.push(_vote);
-  // //   _withdrawNFT(_tokenId);
+    if (_option == 1) {
+      Validations[_tokenId][_id].closing = ValidationStatus.Positive;
+      PredictionStats[_id].wonVoteCount += 1;
+    } else {
+      Validations[_tokenId][_id].closing = ValidationStatus.Negative;
+      PredictionStats[_id].lostVoteCount += 1;
+    }
+    _withdrawNFT(_tokenId);
 
-  // //   emit ClosingVoteSubmitted(_UID, _tokenId, _option);
-  // // }
+    emit ClosingVoteSubmitted(_id, _tokenId, _option);
+  }
 
-  // ///@notice This function can only be called only if seller hasn't concluded transaction
-  // ///@dev miner submits closing validation decision on seller's prediction.
-  // ///@param _UID Prediction ID
-  // ///@param _tokenId Miner's NFT token Id
-  // ///@param _vote Miner's validation decision
-
-  // // function updateMinerClosingVote(
-  // //   uint256 _UID,
-  // //   uint256 _tokenId,
-  // //   uint8 _vote
-  // // ) external override isNftOwner(_tokenId) {
-  // //   require(
-  // //     Predictions[_UID].validators[_tokenId].closing ==
-  // //       ValidationStatus.Positive ||
-  // //       Predictions[_UID].validators[_tokenId].closing ==
-  // //       ValidationStatus.Negative,
-  // //     "Closing vote not cast yet!"
-  // //   );
-  // //   /**Cool down period is 6hrs (21600 secs) after the game ends */
-  // //   require(
-  // //     (block.timestamp > Predictions[_UID].endTime + SIX_HOURS &&
-  // //       block.timestamp < Predictions[_UID].endTime + TWELVE_HOURS),
-  // //     "Event not cooled down"
-  // //   );
-
-  // //   require(_vote > 1 && _vote <= 3, "Vote cannot be neutral");
-  // //   ValidationStatus _status = _getMinerClosingPredictionVote(_UID, _tokenId);
-  // //   if (_vote == 2) {
-  // //     require(
-  // //       _status != ValidationStatus.Positive,
-  // //       "same as previous vote option"
-  // //     );
-  // //     Predictions[_UID].validators[_tokenId].closing = ValidationStatus
-  // //       .Positive;
-  // //     Predictions[_UID].negativeClosingVoteCount -= 1;
-  // //     Predictions[_UID].positiveClosingVoteCount += 1;
-  // //   } else {
-  // //     require(
-  // //       _status != ValidationStatus.Negative,
-  // //       "same as previous vote option"
-  // //     );
-  // //     Predictions[_UID].validators[_tokenId].closing = ValidationStatus
-  // //       .Negative;
-  // //     Predictions[_UID].positiveClosingVoteCount -= 1;
-  // //     Predictions[_UID].negativeClosingVoteCount += 1;
-  // //   }
-
-  // //   emit MinerClosingVoteUpdated(_UID, _tokenId, _vote);
-  // // }
 
   // ///@notice seller can only conclude transaction after games ended and cooled down
   // ///@dev Seller concludes transaction and settles all parties, depending on the prediction outcome.

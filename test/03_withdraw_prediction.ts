@@ -52,7 +52,7 @@ describe("withdrawPrediction function", async function () {
       expect(await contract.Balances(user1.address)).to.equal(0);
       await contract.connect(user1).withdrawPrediction(1);
       expect(await contract.miningPool(0)).to.equal(0);
-      expect((await contract.Predictions(1)).state).to.equal(1) //withdrawn
+      expect((await contract.PredictionStats(1)).state).to.equal(1) //withdrawn
       expect(await contract.Balances(user1.address)).to.equal(state.miningFee.add(state.sellerStakingFee))
       await expect(contract.connect(user1).withdrawPrediction(1)).to.be.revertedWith("Prediction already withdrawn!")
       expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1);

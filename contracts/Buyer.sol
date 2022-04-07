@@ -6,21 +6,7 @@ pragma solidity ^0.8;
 import "./Base.sol";
 
 abstract contract Buyer is Base {
-  /// @dev Sets up parameters applicable to wallet and direct-payment prediction purchase
-  /// @param _UID Prediction ID
-
-  // function _setUpPurchase(uint256 _UID)
-  //   internal
-  //   predictionEventNotStarted(_UID)
-  //   predictionActive(_UID)
-  // {
-  //   Predictions[_UID].buyers[msg.sender].purchased = true;
-  //   Predictions[_UID].buyersList.push(msg.sender);
-  //   Predictions[_UID].buyCount += 1;
-  //   Predictions[_UID].totalEarned += Predictions[_UID].price;
-  //   BoughtPredictions[msg.sender].push(_UID);
-  //   ActiveBoughtPredictions[_UID][msg.sender] = true;
-  // }
+  
 
   // /// @dev Refunds prediction purchase fee back to buyers wallet.
   // /// @param _UID prediction ID
@@ -45,10 +31,10 @@ abstract contract Buyer is Base {
   //   external
   //   virtual;
 
-  // function purchasePrediction(uint256 _UID, string calldata email)
-  //   external
-  //   payable
-  //   virtual;
+  function purchasePrediction(uint256 _UID, string memory _key)
+    external
+    payable
+    virtual;
 
   // function buyerRefund(uint256 _UID) external virtual;
 

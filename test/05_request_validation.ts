@@ -89,7 +89,7 @@ describe("requestValidation function", async function () {
   it("assigns prediction to miner", async function () {
     await ethers.provider.send("evm_increaseTime", [14400])
     expect((await contract.Validations(1, 1)).assigned).to.be.false;
-    expect((await contract.Predictions(1)).validatorCount).to.equal(0)
+    expect((await contract.PredictionStats(1)).validatorCount).to.equal(0)
     expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(0)
     await contract.connect(miner1).requestValidation(1, //tokenId
        "miner1_key", //key
@@ -100,7 +100,7 @@ describe("requestValidation function", async function () {
     
     expect(await minerNFT.connect(contractOwner).ownerOf(1)).to.equal(contract.address);
     expect((await contract.Validations(1, 1)).assigned).to.be.true;
-    expect((await contract.Predictions(1)).validatorCount).to.equal(1)
+    expect((await contract.PredictionStats(1)).validatorCount).to.equal(1)
     expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1)
     expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(1)
     expect((await contract.OwnedValidations(miner1.address, 0)).tokenId).to.equal(1)
@@ -176,8 +176,8 @@ describe("requestValidation function", async function () {
       });
       expect((await contract.Validations(1, 1)).assigned).to.be.false;
       expect((await contract.Validations(1, 2)).assigned).to.be.true;
-      expect((await contract.Predictions(1)).validatorCount).to.equal(0)
-      expect((await contract.Predictions(2)).validatorCount).to.equal(1)
+      expect((await contract.PredictionStats(1)).validatorCount).to.equal(0)
+      expect((await contract.PredictionStats(2)).validatorCount).to.equal(1)
       expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1)
       expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(2)
       expect((await contract.OwnedValidations(miner1.address, 0)).tokenId).to.equal(1)
@@ -207,8 +207,8 @@ describe("requestValidation function", async function () {
       });
       expect((await contract.Validations(1, 1)).assigned).to.be.false;
       expect((await contract.Validations(1, 2)).assigned).to.be.true;
-      expect((await contract.Predictions(1)).validatorCount).to.equal(0)
-      expect((await contract.Predictions(2)).validatorCount).to.equal(1)
+      expect((await contract.PredictionStats(1)).validatorCount).to.equal(0)
+      expect((await contract.PredictionStats(2)).validatorCount).to.equal(1)
       expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1)
       expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(2)
       expect((await contract.OwnedValidations(miner1.address, 0)).tokenId).to.equal(1)
@@ -284,8 +284,8 @@ describe("requestValidation function", async function () {
         value: state.minerStakingFee
       });
 
-      expect((await contract.Predictions(1)).validatorCount).to.equal(5)
-      expect((await contract.Predictions(2)).validatorCount).to.equal(1)
+      expect((await contract.PredictionStats(1)).validatorCount).to.equal(5)
+      expect((await contract.PredictionStats(2)).validatorCount).to.equal(1)
       expect((await contract.OwnedValidations(miner6.address, 0)).key).to.equal("miner6_key")
       expect(await contract.getMiningPoolLength()).to.equal(2)
       expect(await contract.miningPool(0)).to.equal(0)

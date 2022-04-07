@@ -11,11 +11,17 @@ abstract contract Base is Ownable {
 
   // ========== STATE VARIABLES ========== //
 
-  ///@notice maps the generated UID to the prediction details
+  ///@notice maps the generated id to the prediction data
   mapping(uint256 => PredictionData) public Predictions;
+
+  ///@notice maps the generated id to the prediction stats
+  mapping(uint256 => Statistics) public PredictionStats;
 
   //      tokenId          prediction id
   mapping(uint256 => mapping(uint256 => Vote)) public Validations; //maps miners tokenId to vote data
+  
+  //    buyer address    prediction id  
+  mapping(address => mapping(uint256 => PurchaseData)) public Purchases;
 
   mapping(address => uint256) public Balances;
 
@@ -105,20 +111,18 @@ abstract contract Base is Ownable {
     uint256 endTime; //end time of last predicted event
     uint16 odd;
     uint256 price;
-    //address[] buyersList;
-    Vote[] votes;
-   // mapping(address => PurchaseData) buyers;
+  }
+
+  struct Statistics {
     uint8 validatorCount;
-    // uint8 positiveOpeningVoteCount;
-    // uint8 negativeOpeningVoteCount;
-    // uint8 positiveClosingVoteCount;
-    // uint8 negativeClosingVoteCount;
-    //uint64 buyCount; // total count of purchases
+    uint8 upvoteCount;
+    uint8 downvoteCount;
+    uint8 wonVoteCount;
+    uint8 lostVoteCount;
+    uint64 buyCount; 
     Status status;
     State state;
-    //uint256 totalEarned;
-    bool sellerStakingFeeRefunded;
-    bool withdrawnEarnings;
+    // bool withdrawnEarnings;
     // ValidationStatus winningOpeningVote;
     // ValidationStatus winningClosingVote;
   }
@@ -209,9 +213,9 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier predictionEventNotStarted(uint256 _UID) {
+  modifier predictionEventNotStarted(uint256 _id) {
     require(
-      Predictions[_UID].startTime > block.timestamp,
+      Predictions[_id].startTime > block.timestamp,
       "Event already started"
     );
     _;
@@ -222,33 +226,33 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier validatorCountIncomplete(uint256 _UID) {
+  modifier validatorCountIncomplete(uint256 _id) {
     require(
-      Predictions[_UID].validatorCount < MAX_VALIDATORS,
+      PredictionStats[_id].validatorCount < MAX_VALIDATORS,
       "Required validator limit reached"
     );
     _;
   }
 
-  modifier validatorCountComplete(uint256 _UID) {
+  modifier validatorCountComplete(uint256 _id) {
     require(
-      Predictions[_UID].validatorCount == MAX_VALIDATORS,
+      PredictionStats[_id].validatorCount == MAX_VALIDATORS,
       "Required validator limit reached"
     );
     _;
   }
 
 
-  modifier predictionActive(uint256 _UID) {
+  modifier predictionActive(uint256 _id) {
     require(
-      Predictions[_UID].state == State.Active,
+      PredictionStats[_id].state == State.Active,
       "Prediction currently inactive"
     );
     _;
   }
 
   modifier notMined(uint256 _id) {
-    require(Predictions[_id].validatorCount == 0, "Prediction already mined");
+    require(PredictionStats[_id].validatorCount == 0, "Prediction already mined");
     _;
   }
 
