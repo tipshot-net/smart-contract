@@ -27,7 +27,6 @@ describe("updatePrediction function", async function () {
 
     await contract.connect(contractOwner).setVariables(
       state.miningFee,
-      state.sellerStakingFee,
       state.minerStakingFee,
       state.minerPercentage
       );
@@ -45,7 +44,7 @@ describe("updatePrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })
       
       await contract.connect(user1).updatePrediction(
@@ -86,7 +85,7 @@ describe("updatePrediction function", async function () {
       2,
       ethers.utils.parseEther("10.0"),
       {
-        value: state.miningFee.add(state.sellerStakingFee)
+        value: state.miningFee
       })
     
     await expect(contract.connect(user2).updatePrediction(
@@ -127,7 +126,7 @@ describe("updatePrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })
 
        

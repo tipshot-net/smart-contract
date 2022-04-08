@@ -95,11 +95,16 @@ abstract contract Miner is Base {
     TokenOwner[_tokenId] = address(0);
   }
 
+  function addToActivePool(uint256 _id) internal {
+    activePool.push(_id);
+    Index[_id] = activePool.length - 1;
+  }
+
 
   
-  ///@dev Calculate majority opening vote
-  ///@param _UID Prediction ID
-  ///@return status -> majority opening consensus
+  // /@dev Calculate majority opening vote
+  // /@param _UID Prediction ID
+  // /@return status -> majority opening consensus
 
   // function _getWinningOpeningVote(uint256 _UID)
   //   internal
@@ -121,9 +126,9 @@ abstract contract Miner is Base {
   //   }
   // }
 
-  ///@dev Calculate majority closing vote
-  ///@param _UID Prediction ID
-  ///@return status -> majority closing consensus
+  // /@dev Calculate majority closing vote
+  // /@param _UID Prediction ID
+  // /@return status -> majority closing consensus
 
   // function _getWinningClosingVote(uint256 _UID)
   //   internal
@@ -145,17 +150,17 @@ abstract contract Miner is Base {
   //   }
   // }
 
-  ///@dev Refund miner staking fee based on the conditions that the opening and
-  ///closing vote matches majority consensus, else lock staking fee
-  ///@param _prediction Predicition data
-  ///@param _winningOpeningVote majority prediction opening vote consensus
-  ///@param _winningClosingVote majority prediction closing vote consensus
+  // /@dev Refund miner staking fee based on the conditions that the opening and
+  // /closing vote matches majority consensus, else lock staking fee
+  // /@param _prediction Predicition data
+  // /@param _winningOpeningVote majority prediction opening vote consensus
+  // /@param _winningClosingVote majority prediction closing vote consensus
 
-  function _refundMinerStakingFee(
-    PredictionData storage _prediction,
-    ValidationStatus _winningOpeningVote,
-    ValidationStatus _winningClosingVote
-  ) internal {
+  // function _refundMinerStakingFee(
+  //   PredictionData storage _prediction,
+  //   ValidationStatus _winningOpeningVote,
+  //   ValidationStatus _winningClosingVote
+  // ) internal {
     // for (uint256 index = 0; index < _prediction.votes.length; index++) {
     //   if (
     //     _prediction.votes[index].opening == _winningOpeningVote &&
@@ -168,7 +173,7 @@ abstract contract Miner is Base {
     //     lockFunds(_prediction.votes[index].miner, minerStakingFee);
     //   }
     // }
-  }
+  //}
 
   // /@dev View function to get the a miner's opening vote for a particular prediction
   // /@param _UID Prediction ID

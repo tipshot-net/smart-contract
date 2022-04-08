@@ -32,12 +32,10 @@ describe("set up contract", async function () {
     it("should have correct variable set by owner", async function () {
       await contract.connect(contractOwner).setVariables(
         state.miningFee,
-        state.sellerStakingFee,
         state.minerStakingFee,
         state.minerPercentage
         );
     expect(await contract.miningFee()).to.equal(state.miningFee);
-    expect(await contract.sellerStakingFee()).to.equal(state.sellerStakingFee);
     expect(await contract.minerStakingFee()).to.equal(state.minerStakingFee);
     expect(await contract.minerPercentage()).to.equal(state.minerPercentage)  
     })
@@ -45,7 +43,6 @@ describe("set up contract", async function () {
     it("should revert if variable set by non owner", async function () {
       await expect(contract.connect(user1).setVariables(
         state.miningFee,
-        state.sellerStakingFee,
         state.minerStakingFee,
         state.minerPercentage
         )).to.be.revertedWith("Unauthorized access");

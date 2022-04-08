@@ -26,7 +26,6 @@ describe("withdrawPrediction function", async function () {
 
     await contract.connect(contractOwner).setVariables(
       state.miningFee,
-      state.sellerStakingFee,
       state.minerStakingFee,
       state.minerPercentage
       );
@@ -45,7 +44,7 @@ describe("withdrawPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })
         expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1);
       expect(await contract.miningPool(0)).to.equal(1);
@@ -53,7 +52,7 @@ describe("withdrawPrediction function", async function () {
       await contract.connect(user1).withdrawPrediction(1);
       expect(await contract.miningPool(0)).to.equal(0);
       expect((await contract.PredictionStats(1)).state).to.equal(1) //withdrawn
-      expect(await contract.Balances(user1.address)).to.equal(state.miningFee.add(state.sellerStakingFee))
+      expect(await contract.Balances(user1.address)).to.equal(state.miningFee)
       await expect(contract.connect(user1).withdrawPrediction(1)).to.be.revertedWith("Prediction already withdrawn!")
       expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1);
     })
@@ -71,7 +70,7 @@ describe("withdrawPrediction function", async function () {
       2,
       ethers.utils.parseEther("10.0"),
       {
-        value: state.miningFee.add(state.sellerStakingFee)
+        value: state.miningFee
       })
       await expect(contract.connect(user2).withdrawPrediction(1)).to.be.revertedWith("Only prediction seller")
       expect(await contract.miningPool(0)).to.equal(1);
@@ -91,7 +90,7 @@ describe("withdrawPrediction function", async function () {
       2,
       ethers.utils.parseEther("10.0"),
       {
-        value: state.miningFee.add(state.sellerStakingFee)
+        value: state.miningFee
       })
 
       await minerNFT.connect(contractOwner).setSellingPrice(ethers.utils.parseEther("2.0"))

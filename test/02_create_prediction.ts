@@ -26,7 +26,6 @@ describe("createPrediction function", async function () {
 
     await contract.connect(contractOwner).setVariables(
       state.miningFee,
-      state.sellerStakingFee,
       state.minerStakingFee,
       state.minerPercentage
       );
@@ -46,7 +45,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })
     const current = await contract.Predictions(1);
     expect(current.seller).to.equal(user1.address);
@@ -78,7 +77,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })).to.be.revertedWith("Doesn't meet min requirements");
 
       
@@ -96,7 +95,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })).to.be.revertedWith("End time less than start time");
     })
 
@@ -114,7 +113,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })).to.be.revertedWith("Doesn't meet min requirements")
       
     })
@@ -133,7 +132,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })).to.be.revertedWith("Doesn't meet min requirements")
     })
 
@@ -150,7 +149,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee).sub(ethers.utils.parseEther("2.0"))
+          value: state.miningFee.sub(ethers.utils.parseEther("2.0"))
         })).to.be.revertedWith("Insufficient balance")
     })
 
@@ -167,7 +166,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee).add(ethers.utils.parseEther("2.0"))
+          value: state.miningFee.add(ethers.utils.parseEther("2.0"))
         })
 
       expect(await contract.Balances(user1.address)).to.equal(ethers.utils.parseEther("2.0"))
@@ -192,7 +191,7 @@ describe("createPrediction function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee).sub(ethers.utils.parseEther("2.0"))
+          value: state.miningFee.sub(ethers.utils.parseEther("2.0"))
         })
 
 
@@ -226,7 +225,7 @@ describe("createPrediction function", async function () {
           2,
           ethers.utils.parseEther("10.0"),
           {
-            value: state.miningFee.add(state.sellerStakingFee)
+            value: state.miningFee
           })
         
       }

@@ -23,6 +23,9 @@ abstract contract Base is Ownable {
   //    buyer address    prediction id  
   mapping(address => mapping(uint256 => PurchaseData)) public Purchases;
 
+  //      predictionId => activePool index
+  mapping(uint256 => uint256) public Index;
+
   mapping(address => uint256) public Balances;
 
   mapping(address => LockedFundsData) public LockedFunds;
@@ -177,6 +180,7 @@ abstract contract Base is Ownable {
 
 
   uint256[] public miningPool;
+  uint256[] public activePool;
 
   /**********************************/
   /*╔═════════════════════════════╗

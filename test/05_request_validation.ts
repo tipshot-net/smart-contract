@@ -40,7 +40,6 @@ describe("requestValidation function", async function () {
 
     await contract.connect(contractOwner).setVariables(
       state.miningFee,
-      state.sellerStakingFee,
       state.minerStakingFee,
       state.minerPercentage
       );
@@ -57,7 +56,7 @@ describe("requestValidation function", async function () {
         2,
         ethers.utils.parseEther("10.0"),
         {
-          value: state.miningFee.add(state.sellerStakingFee)
+          value: state.miningFee
         })
 
         await contract.connect(user2).createPrediction(
@@ -68,7 +67,7 @@ describe("requestValidation function", async function () {
           3,
           ethers.utils.parseEther("20.0"),
           {
-            value: state.miningFee.add(state.sellerStakingFee)
+            value: state.miningFee
           });
 
           await minerNFT.connect(contractOwner).setSellingPrice(ethers.utils.parseEther("2.0"))

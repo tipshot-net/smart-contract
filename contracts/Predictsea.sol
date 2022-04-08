@@ -22,7 +22,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
   event VariableUpdated(
     uint256 miningFee,
-    uint256 sellerStakingFee,
     uint256 minerStakingFee,
     uint32 minerPercentage
   );
@@ -97,23 +96,19 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
 
   ///@dev Set all variables in one function to reduce contract size
   ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
-  ///@param _sellerStakingFee Seller staking fee in wei
   ///@param _minerStakingFee Miner staking fee in wei
   ///@param _minerPercentage Percentage of the total_prediction_earnings each miner receives in event of winning (Value between 0 - 100)
 
   function setVariables(
     uint256 _miningFee,
-    uint256 _sellerStakingFee,
     uint256 _minerStakingFee,
     uint32 _minerPercentage
   ) external onlyOwner {
     miningFee = _miningFee;
-    sellerStakingFee = _sellerStakingFee;
     minerStakingFee = _minerStakingFee;
     minerPercentage = _minerPercentage;
     emit VariableUpdated(
       miningFee,
-      sellerStakingFee,
       minerStakingFee,
       minerPercentage
     );
@@ -142,12 +137,11 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     uint16 _odd,
     uint256 _price
   ) external payable override {
-    uint256 total = miningFee + sellerStakingFee;
-    if(msg.value < total){
-      require(Balances[msg.sender] >= (total - msg.value), "Insufficient balance");
-      Balances[msg.sender] -= (total - msg.value);
+    if(msg.value < miningFee){
+      require(Balances[msg.sender] >= (miningFee - msg.value), "Insufficient balance");
+      Balances[msg.sender] -= (miningFee - msg.value);
     }else{
-      uint256 bal = msg.value - total;
+      uint256 bal = msg.value - miningFee;
       if (bal > 0) {
         Balances[msg.sender] += bal;
       }
@@ -185,7 +179,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
     PredictionStats[_id].state = State.Withdrawn;
     delete miningPool[_id - 1]; //delete prediction entry from mining pool
-    Balances[Predictions[_id].seller] += sellerStakingFee;
     Balances[Predictions[_id].seller] += miningFee; //Refund mining fee
     emit PredictionWithdrawn(_id, msg.sender);
   }
@@ -235,10 +228,6 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     emit ValidationAssigned(msg.sender, _id, _tokenId);
   }
 
-  function addToActivePool(uint256 _id) internal {
-
-  }
-
   ///@dev miner submits opening validation decision on seller's prediction
   ///@param _id Prediction ID
   ///@param _tokenId Miner's NFT token Id
@@ -269,6 +258,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     if (PredictionStats[_id].upvoteCount == SIXTY_PERCENT) {
       //prediction receives 60% positive validations
       PredictionStats[_id].state = State.Active;
+      addToActivePool(_id);
     }
 
     if (PredictionStats[_id].downvoteCount == SIXTY_PERCENT) {
