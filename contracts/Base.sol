@@ -54,7 +54,7 @@ abstract contract Base is Ownable {
 
   mapping(address => ValidationData[]) public OwnedValidations;
 
-  mapping(uint256 => address) internal TokenOwner;
+  mapping(uint256 => address) public TokenOwner;
 
   mapping(uint256 => mapping(address => bool)) internal ActiveBoughtPredictions;
 
@@ -98,6 +98,7 @@ abstract contract Base is Ownable {
   }
 
   struct Vote {
+    address miner;
     bool assigned;
     ValidationStatus opening;
     ValidationStatus closing;
@@ -132,6 +133,7 @@ abstract contract Base is Ownable {
 
   struct PurchaseData {
     bool purchased;
+    string key;
     bool refunded;
   }
 
@@ -344,6 +346,10 @@ function add(uint256 a, uint256 b) internal pure returns (uint256) {
     return miningPool.length;
   }
 
+  function getActivePoolLength() public view returns(uint256 length) {
+    return activePool.length;
+  }
+
   function getOwnedPredictionsLength(address seller) public view returns(uint256 length) {
     return OwnedPredictions[seller].length;
   }
@@ -352,6 +358,9 @@ function add(uint256 a, uint256 b) internal pure returns (uint256) {
     return OwnedValidations[miner].length;
   }
 
-  
+  function getBoughtPredictionsLength(address buyer) public view returns(uint256 length){
+    return BoughtPredictions[buyer].length;
+  }
+
 
 }

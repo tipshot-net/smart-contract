@@ -294,6 +294,7 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
       }
     }
     Purchases[msg.sender][_id].purchased = true;
+    Purchases[msg.sender][_id].key = _key;
     PredictionStats[_id].buyCount += 1;
     BoughtPredictions[msg.sender].push(_id);
     emit PredictionPurchased(_id, msg.sender, _key);
@@ -309,11 +310,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     uint256 _id,
     uint256 _tokenId,
     uint8 _option
-  ) external override {
+  ) external override predictionActive(_id) isNftOwner(_tokenId){
     require(_option == 1 || _option == 2, "Invalid validation option");
     require(
-      (block.timestamp > Predictions[_id].endTime + (2 * HOURS) &&
-        block.timestamp < Predictions[_id].endTime + (6 * HOURS)),
+      block.timestamp > Predictions[_id].endTime + (2 * HOURS),
       "Can't cast closing vote now"
     );
 
@@ -323,8 +323,10 @@ contract Predictsea is IERC721Receiver, Seller, Miner, Buyer {
     );
     require(
       Validations[_tokenId][_id].closing == ValidationStatus.Neutral, 
-      "Opening vote already cast"
+      "Closing vote already cast"
     );
+
+    require( block.timestamp < Predictions[_id].endTime + (6 * HOURS), "Vote window period expired");
 
     if (_option == 1) {
       Validations[_tokenId][_id].closing = ValidationStatus.Positive;
