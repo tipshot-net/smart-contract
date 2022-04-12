@@ -3,12 +3,9 @@ pragma solidity ^0.8;
 import "./Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-
-
 ///@notice This contract contains all state variables, modifiers and internal functions used by multiple contracts.
 
 abstract contract Base is Ownable {
-
   // ========== STATE VARIABLES ========== //
 
   ///@notice maps the generated id to the prediction data
@@ -19,8 +16,8 @@ abstract contract Base is Ownable {
 
   //      tokenId          prediction id
   mapping(uint256 => mapping(uint256 => Vote)) public Validations; //maps miners tokenId to vote data
-  
-  //    buyer address    prediction id  
+
+  //    buyer address    prediction id
   mapping(address => mapping(uint256 => PurchaseData)) public Purchases;
 
   //      predictionId => activePool index
@@ -34,19 +31,9 @@ abstract contract Base is Ownable {
 
   uint8 internal constant SIXTY_PERCENT = 3;
 
-  uint8 internal constant EIGHTY_PERCENT = 4;
-
   uint8 internal constant MAX_VALIDATORS = 5;
 
-  uint8 internal constant TO_PERCENTAGE = 100;
-
-  uint16 internal constant BANK_ROLL = 1000;
-
-  uint16 internal constant CONSTANT_VALUE_MULTIPLIER = 1000;
-
   uint16 internal constant HOURS = 3600;
-
-  
 
   mapping(address => uint256[]) public BoughtPredictions;
 
@@ -62,12 +49,7 @@ abstract contract Base is Ownable {
 
   mapping(uint256 => mapping(address => bool)) internal ActiveSoldPredictions;
 
-  mapping(address => PerformanceData) public Performance;
-
-  /// @notice maps username to address -> verified sellers only
-  mapping(bytes32 => address) public UsernameService;
-
-  mapping(address => Profile) public UserProfile;
+  mapping(address => Profile) public User;
 
   enum Status {
     Pending,
@@ -102,8 +84,7 @@ abstract contract Base is Ownable {
     bool assigned;
     ValidationStatus opening;
     ValidationStatus closing;
-    bool stakingFeeRefunded;
-    bool correctValidation;
+    bool settled;
   }
 
   struct PredictionData {
@@ -115,6 +96,11 @@ abstract contract Base is Ownable {
     uint256 endTime; //end time of last predicted event
     uint16 odd;
     uint256 price;
+    Status status;
+    State state;
+    bool withdrawnEarnings;
+    ValidationStatus winningOpeningVote;
+    ValidationStatus winningClosingVote;
   }
 
   struct Statistics {
@@ -123,12 +109,7 @@ abstract contract Base is Ownable {
     uint8 downvoteCount;
     uint8 wonVoteCount;
     uint8 lostVoteCount;
-    uint64 buyCount; 
-    Status status;
-    State state;
-    // bool withdrawnEarnings;
-    // ValidationStatus winningOpeningVote;
-    // ValidationStatus winningClosingVote;
+    uint64 buyCount;
   }
 
   struct PurchaseData {
@@ -141,45 +122,23 @@ abstract contract Base is Ownable {
     uint256 id;
     uint256 tokenId;
     string key;
-    }
-
-  struct PredictionHistory {
-    uint32 odd;
-    uint256 winnings;
   }
 
   struct Profile {
-    bytes32 username;
+    string profile;
+    string key;
     uint256 wonCount;
     uint256 lostCount;
     uint256 totalPredictions;
     uint256 totalOdds;
     uint256 grossWinnings;
-    PredictionHistory[] last30Predictions;
-  }
-
-  struct PerformanceData {
-    //Remember to divide by constant value (1000)
-    uint256 recentWinRate;
-    int256 recentYield;
-    int256 recentROI;
-    int256 recentProfitablity;
-    uint256 recentAverageOdds;
-    uint256 lifetimeWinRate;
-    int256 lifetimeYield;
-    int256 lifetimeROI;
-    int256 lifetimeProfitability;
+    uint256[30] last30Predictions;
+    uint8 spot;
   }
 
   uint256 public miningFee; // paid by seller -> to be shared by validators
-  uint256 public sellerStakingFee; // paid by seller, staked per prediction
   uint256 public minerStakingFee; // paid by miner, staked per validation
   uint32 public minerPercentage; // %  for miner, In event of a prediction won
-
-  ///@notice Seller requires needs to surpass 100 Won predictions to be eligible to create a verified username
-  uint16 public minWonCountForVerification = 100; 
-
-
 
   uint256[] public miningPool;
   uint256[] public activePool;
@@ -188,8 +147,6 @@ abstract contract Base is Ownable {
   /*╔═════════════════════════════╗
     ║          MODIFIERS          ║
     ╚═════════════════════════════╝*/
-
-  
 
   modifier onlySeller(uint256 _id) {
     require(msg.sender == Predictions[_id].seller, "Only prediction seller");
@@ -227,8 +184,8 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier predictionEventAlreadyStarted(uint256 _UID) {
-    require(block.timestamp > Predictions[_UID].startTime, "Event not started");
+  modifier predictionEventEnded(uint256 _UID) {
+    require(block.timestamp > Predictions[_UID].endTime, "Event not started");
     _;
   }
 
@@ -248,17 +205,19 @@ abstract contract Base is Ownable {
     _;
   }
 
-
   modifier predictionActive(uint256 _id) {
     require(
-      PredictionStats[_id].state == State.Active,
+      Predictions[_id].state == State.Active,
       "Prediction currently inactive"
     );
     _;
   }
 
   modifier notMined(uint256 _id) {
-    require(PredictionStats[_id].validatorCount == 0, "Prediction already mined");
+    require(
+      PredictionStats[_id].validatorCount == 0,
+      "Prediction already mined"
+    );
     _;
   }
 
@@ -267,11 +226,12 @@ abstract contract Base is Ownable {
     _;
   }
 
-  modifier predictionClosingOverdue(uint256 _UID) {
+  modifier assignedToMiner(uint256 _id, uint256 _tokenId) {
     require(
-      block.timestamp > Predictions[_UID].endTime + (24 * HOURS),
-      "Prediction closing not overdue"
+      Validations[_tokenId][_id].assigned == true,
+      "Not assigned to miner"
     );
+
     _;
   }
 
@@ -282,85 +242,94 @@ abstract contract Base is Ownable {
     ╚═════════════════════════════╝*/
   /**********************************/
 
-  
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a, "SafeMath: addition overflow");
+    return c;
+  }
 
-function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-        return c;
-    }
+  /**
+   * @dev Returns the subtraction of two unsigned integers, reverting on
+   * overflow (when the result is negative).
+   *
+   * Counterpart to Solidity's `-` operator.
+   *
+   * Requirements:
+   *
+   * - Subtraction cannot overflow.
+   */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b <= a, "SafeMath: subtraction overflow");
+    return a - b;
+  }
 
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
-        return a - b;
-    }
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) return 0;
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath:multiplication overflow");
-        return c;
-    }
+  /**
+   * @dev Returns the multiplication of two unsigned integers, reverting on
+   * overflow.
+   *
+   * Counterpart to Solidity's `*` operator.
+   *
+   * Requirements:
+   *
+   * - Multiplication cannot overflow.
+   */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) return 0;
+    uint256 c = a * b;
+    require(c / a == b, "SafeMath:multiplication overflow");
+    return c;
+  }
 
-    ///@dev checks if prediction data meets requirements
+  ///@dev checks if prediction data meets requirements
   /// @param _startTime Timestamp of the kickoff time of the first prediction event
   /// @param _endTime Timestamp of the proposed end of the last prediction event
   ///@return bool
 
-    function _sellerDoesMeetMinimumRequirements(
-      uint256 _startTime,
-      uint256 _endTime
-    ) internal view returns (bool) {
-      require(_endTime > _startTime, "End time less than start time");
-      if (
-        add(block.timestamp, mul(8 , HOURS)) > _startTime ||
-        _startTime > add(block.timestamp, mul(24 , HOURS)) ||
-        sub(_endTime, _startTime) > mul(24 , HOURS)
-      ) {
-        return false;
-      }
-
-      return true;
+  function _sellerDoesMeetMinimumRequirements(
+    uint256 _startTime,
+    uint256 _endTime
+  ) internal view returns (bool) {
+    require(_endTime > _startTime, "End time less than start time");
+    if (
+      add(block.timestamp, mul(8, HOURS)) > _startTime ||
+      _startTime > add(block.timestamp, mul(24, HOURS)) ||
+      sub(_endTime, _startTime) > mul(24, HOURS)
+    ) {
+      return false;
     }
 
-  function getMiningPoolLength() public view returns(uint256 length) {
+    return true;
+  }
+
+  function getMiningPoolLength() public view returns (uint256 length) {
     return miningPool.length;
   }
 
-  function getActivePoolLength() public view returns(uint256 length) {
+  function getActivePoolLength() public view returns (uint256 length) {
     return activePool.length;
   }
 
-  function getOwnedPredictionsLength(address seller) public view returns(uint256 length) {
+  function getOwnedPredictionsLength(address seller)
+    public
+    view
+    returns (uint256 length)
+  {
     return OwnedPredictions[seller].length;
   }
 
-  function getOwnedValidationsLength(address miner) public view returns(uint256 length) {
+  function getOwnedValidationsLength(address miner)
+    public
+    view
+    returns (uint256 length)
+  {
     return OwnedValidations[miner].length;
   }
 
-  function getBoughtPredictionsLength(address buyer) public view returns(uint256 length){
+  function getBoughtPredictionsLength(address buyer)
+    public
+    view
+    returns (uint256 length)
+  {
     return BoughtPredictions[buyer].length;
   }
-
-
 }

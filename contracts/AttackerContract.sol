@@ -10,11 +10,9 @@ contract AttackerContract {
   // uint256 public UID;
   // uint256 public stakingFee;
   // bool public withdrawFail;
-
   // function setUpContract(address payable _predictseaContract) external {
   //   _predictsea = Predictsea(_predictseaContract);
   // }
-
   // // function createPrediction(
   // //   uint256 _UID,
   // //   uint256 _startTime,
@@ -31,20 +29,16 @@ contract AttackerContract {
   // //   );
   // //   balanceOfContract -= stakingFee;
   // // }
-
   // function withdraw() public {
   //   _predictsea.withdrawPrediction(UID);
   // }
-
   // function deposit() external payable {
   //   balanceOfContract += msg.value;
   // }
-
   // function withdrawFailed() external payable {
   //   withdrawFail = true;
   //   _predictsea.withdrawFunds(stakingFee);
   // }
-
   // receive() external payable {
   //   balanceOfContract += msg.value;
   //   if (!withdrawFail) {

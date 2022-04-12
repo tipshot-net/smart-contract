@@ -31,10 +31,7 @@ contract PredictNFT is ERC721URIStorage, Ownable {
   ///@dev Whitelisted addresses can mint token after which the address is delisted
   ///@param tokenURI Associated metadata URI of the token
 
-  function mintToken(string memory tokenURI)
-    public
-    returns (uint256)
-  {
+  function mintToken(string memory tokenURI) public returns (uint256) {
     require(canMint[msg.sender], "Cannot mint token");
     _tokenIds.increment();
 

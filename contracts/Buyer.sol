@@ -6,8 +6,6 @@ pragma solidity ^0.8;
 import "./Base.sol";
 
 abstract contract Buyer is Base {
-  
-
   // /// @dev Refunds prediction purchase fee back to buyers wallet.
   // /// @param _UID prediction ID
 

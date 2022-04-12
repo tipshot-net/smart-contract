@@ -8,7 +8,6 @@ contract Ownable {
   /** contract can be locked in case of emergencies */
   bool public locked = false;
 
-
   /** nominated address can claim ownership of contract 
     and automatically become owner */
   address payable public nominatedOwner;

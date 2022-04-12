@@ -69,7 +69,7 @@ describe("purchasePrediction function", async function () {
         await minerNFT.connect(miner2).approve(contract.address, 2);
         await minerNFT.connect(miner3).approve(contract.address, 3);
 
-        await ethers.provider.send("evm_increaseTime", [14400]);
+      await ethers.provider.send("evm_increaseTime", [14400]);
       await contract.connect(miner1).requestValidation(1, //tokenId
         "miner1_key", //key
       {
