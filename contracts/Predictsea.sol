@@ -763,6 +763,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     if (PredictionStats[_id].downvoteCount == SIXTY_PERCENT) {
       //prediction receives 60% negative validations
       Predictions[_id].state = State.Rejected;
+      delete miningPool[_id - 1]; //delete prediction entry from mining pool
     }
 
     uint256 minerBonus = miningFee / MAX_VALIDATORS;
@@ -846,8 +847,9 @@ contract Predictsea is Ownable, IERC721Receiver {
 
   function withdrawMinerNftandStakingFee(uint256 _id, uint256 _tokenId)
     external
-    isNftOwner(_tokenId)
     assignedToMiner(_id, _tokenId)
+    isNftOwner(_tokenId)
+    
   {
     require(
       Predictions[_id].state == State.Rejected,
@@ -862,6 +864,26 @@ contract Predictsea is Ownable, IERC721Receiver {
     _withdrawNFT(_tokenId);
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
+
+  function refundBuyer(uint256 _id) external {
+    require(
+      Predictions[_id].state == State.Concluded,
+      "Prediction not concluded"
+    );
+    require(
+      Purchases[msg.sender][_id].purchased == true,
+      "No purchase history found"
+    );
+    require(Purchases[msg.sender][_id].refunded == false, "Already refunded");
+    require(
+      Predictions[_id].winningClosingVote == ValidationStatus.Negative,
+      "Prediction won"
+    );
+    Balances[msg.sender] += Predictions[_id].price;
+    Purchases[msg.sender][_id].refunded == true;
+    emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
+  }
+
 
   function settleMiner(uint256 _id, uint256 _tokenId) external {
     require(Validations[_tokenId][_id].miner == msg.sender, "Not miner");
@@ -919,24 +941,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     emit SellerSettled(msg.sender, _id, _sellerEarnings);
   }
 
-  function refundBuyer(uint256 _id) external {
-    require(
-      Predictions[_id].state == State.Concluded,
-      "Prediction not concluded"
-    );
-    require(
-      Purchases[msg.sender][_id].purchased == true,
-      "No purchase history found"
-    );
-    require(Purchases[msg.sender][_id].refunded == false, "Already refunded");
-    require(
-      Predictions[_id].winningClosingVote == ValidationStatus.Negative,
-      "Prediction won"
-    );
-    Balances[msg.sender] += Predictions[_id].price;
-    Purchases[msg.sender][_id].refunded == true;
-    emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
-  }
+  
 
   ///@dev Withdraw funds from the contract
   ///@param _amount Amount to be withdrawn
