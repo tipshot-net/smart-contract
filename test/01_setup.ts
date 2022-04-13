@@ -91,5 +91,17 @@ describe("set up contract", async function () {
         contract.connect(user1).nominateNewOwner(user2.address),
       ).to.be.revertedWith("Unauthorized access")
     })
+
+    it("updates user's profile", async function () {
+      expect((await contract.User(user1.address)).profile).to.equal("");
+      expect((await contract.User(user1.address)).key).to.equal("");
+
+      await contract.connect(user1).addProfile("myprofiledata", "mykey");
+
+      expect((await contract.User(user1.address)).profile).to.equal("myprofiledata");
+      expect((await contract.User(user1.address)).key).to.equal("mykey");
+    })
   })
+
+
 })

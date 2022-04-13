@@ -865,27 +865,11 @@ contract Predictsea is Ownable, IERC721Receiver {
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
 
-  function refundBuyer(uint256 _id) external {
-    require(
-      Predictions[_id].state == State.Concluded,
-      "Prediction not concluded"
-    );
-    require(
-      Purchases[msg.sender][_id].purchased == true,
-      "No purchase history found"
-    );
-    require(Purchases[msg.sender][_id].refunded == false, "Already refunded");
-    require(
-      Predictions[_id].winningClosingVote == ValidationStatus.Negative,
-      "Prediction won"
-    );
-    Balances[msg.sender] += Predictions[_id].price;
-    Purchases[msg.sender][_id].refunded == true;
-    emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
-  }
+  
 
 
   function settleMiner(uint256 _id, uint256 _tokenId) external {
+    require(Predictions[_id].state == State.Active || Predictions[_id].state == State.Concluded, "Not an active prediction");
     require(Validations[_tokenId][_id].miner == msg.sender, "Not miner");
     require(
       Validations[_tokenId][_id].settled == false,
@@ -916,6 +900,25 @@ contract Predictsea is Ownable, IERC721Receiver {
     Validations[_tokenId][_id].settled == true;
 
     emit MinerSettled(msg.sender, _id, _tokenId, _minerEarnings, _refunded);
+  }
+
+  function refundBuyer(uint256 _id) external {
+    require(
+      Predictions[_id].state == State.Concluded,
+      "Prediction not concluded"
+    );
+    require(
+      Purchases[msg.sender][_id].purchased == true,
+      "No purchase history found"
+    );
+    require(Purchases[msg.sender][_id].refunded == false, "Already refunded");
+    require(
+      Predictions[_id].winningClosingVote == ValidationStatus.Negative,
+      "Prediction won"
+    );
+    Balances[msg.sender] += Predictions[_id].price;
+    Purchases[msg.sender][_id].refunded == true;
+    emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
   }
 
   function settleSeller(uint256 _id) external onlySeller(_id) {
