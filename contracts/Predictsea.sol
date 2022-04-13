@@ -654,12 +654,14 @@ contract Predictsea is Ownable, IERC721Receiver {
 
     _predictionIds.increment();
     uint256 _id = _predictionIds.current();
-    ownedPredictionsCleanup();
+    
     _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
     miningPool.push(_id);
-
+    
+    ownedPredictionsCleanup();
     OwnedPredictions[msg.sender].push(_id);
+    
 
     emit PredictionCreated(msg.sender, _id, _ipfsHash, _key);
   }

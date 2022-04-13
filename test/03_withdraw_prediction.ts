@@ -13,8 +13,8 @@ describe("withdrawPrediction function", async function () {
   let miner1: SignerWithAddress
 
   beforeEach(async function () {
-    const Predictsea = await ethers.getContractFactory("Predictsea")
-    ;[contractOwner, user1, user2, miner1] = await ethers.getSigners()
+    const Predictsea = await ethers.getContractFactory("Predictsea");
+    [contractOwner, user1, user2, miner1] = await ethers.getSigners()
     contract = await Predictsea.deploy()
     await contract.deployed()
 
@@ -130,5 +130,46 @@ describe("withdrawPrediction function", async function () {
     await expect(
       contract.connect(user1).withdrawPrediction(1),
     ).to.be.revertedWith("Prediction already mined")
+  })
+
+  it("removes from owned predictions if prediction is withdrawn", async function () {
+    const latestBlock = await ethers.provider.getBlock("latest")
+    const _startTime = latestBlock.timestamp + 43200
+    const _endTime = _startTime + 86400
+
+    expect(await contract.getOwnedPredictionsLength(user1.address)).to.equal(0);
+    await contract
+      .connect(user1)
+      .createPrediction(
+        "hellothere123",
+        "hithere123",
+        _startTime,
+        _endTime,
+        2,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee,
+        },
+      )
+      
+      await contract.connect(user1).withdrawPrediction(1)
+      expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1);
+      expect(await contract.getOwnedPredictionsLength(user1.address)).to.equal(1);
+
+      await contract
+      .connect(user1)
+      .createPrediction(
+        "hellothere123",
+        "hithere123",
+        _startTime,
+        _endTime,
+        2,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee,
+        },
+      )
+      expect(await contract.getOwnedPredictionsLength(user1.address)).to.equal(1);
+      expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(2);
   })
 })

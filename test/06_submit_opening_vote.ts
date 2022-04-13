@@ -257,7 +257,7 @@ describe("submitOpeningVote function", async function () {
     expect(await contract.activePool(0)).to.equal(1)
   })
 
-  it("is rejected after receiving 60% downvote", async function () {
+  it("is rejected after receiving 60% downvote, removes from mining pool", async function () {
     await ethers.provider.send("evm_increaseTime", [14400])
     await contract.connect(miner1).requestValidation(
       1, //tokenId
@@ -289,10 +289,123 @@ describe("submitOpeningVote function", async function () {
 
     expect((await contract.Predictions(1)).state).to.equal(0)
 
+    expect(await contract.miningPool(0)).to.equal(1)
+
     await contract.connect(miner3).submitOpeningVote(1, 3, 2)
 
     expect((await contract.PredictionStats(1)).downvoteCount).to.equal(3)
     expect((await contract.Predictions(1)).state).to.equal(2)
     expect(await contract.getActivePoolLength()).to.equal(0)
+    expect(await contract.miningPool(0)).to.equal(0)
+  })
+
+
+  it("removes id from miner's owned validations and seller's owned predictions if rejected", async function () {
+    await ethers.provider.send("evm_increaseTime", [14400]) 
+    expect(await contract.getOwnedPredictionsLength(user1.address)).to.equal(1)
+    expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
+    
+    await contract.connect(miner1).requestValidation(
+      1, //tokenId
+      "miner1_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner2).requestValidation(
+      2, //tokenId
+      "miner2_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner3).requestValidation(
+      3, //tokenId
+      "miner3_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1)
+    expect(await contract.getOwnedValidationsLength(miner2.address)).to.equal(1)
+    expect(await contract.getOwnedValidationsLength(miner3.address)).to.equal(1)
+
+    expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(1)
+    expect((await contract.OwnedValidations(miner2.address, 0)).id).to.equal(1)
+    expect((await contract.OwnedValidations(miner3.address, 0)).id).to.equal(1)
+
+    await contract.connect(miner1).submitOpeningVote(1, 1, 2)
+
+    await contract.connect(miner2).submitOpeningVote(1, 2, 2)
+
+    await contract.connect(miner3).submitOpeningVote(1, 3, 2)
+
+
+    await contract.connect(miner1).withdrawMinerNftandStakingFee(1, 1);
+    await contract.connect(miner2).withdrawMinerNftandStakingFee(1, 2);
+    await contract.connect(miner3).withdrawMinerNftandStakingFee(1, 3);
+
+      const latestBlock = await ethers.provider.getBlock("latest")
+      const _startTime = latestBlock.timestamp + 43200
+      const _endTime = _startTime + 86400
+      await contract
+        .connect(user1)
+        .createPrediction(
+          "hellothere123",
+          "hithere123",
+          _startTime,
+          _endTime,
+          2,
+          ethers.utils.parseEther("10.0"),
+          {
+            value: state.miningFee,
+          },
+        )
+
+    await ethers.provider.send("evm_increaseTime", [14400])
+
+    await minerNFT.connect(miner1).approve(contract.address, 1)
+    await minerNFT.connect(miner2).approve(contract.address, 2)
+    await minerNFT.connect(miner3).approve(contract.address, 3)
+
+    await contract.connect(miner1).requestValidation(
+      1, //tokenId
+      "miner1_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner2).requestValidation(
+      2, //tokenId
+      "miner2_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner3).requestValidation(
+      3, //tokenId
+      "miner3_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+   
+    expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1)
+    expect(await contract.getOwnedValidationsLength(miner2.address)).to.equal(1)
+    expect(await contract.getOwnedValidationsLength(miner3.address)).to.equal(1)
+
+    expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(2)
+    expect((await contract.OwnedValidations(miner2.address, 0)).id).to.equal(2)
+    expect((await contract.OwnedValidations(miner3.address, 0)).id).to.equal(2)
+
+    expect(await contract.getOwnedPredictionsLength(user1.address)).to.equal(1)
+    expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(2)
+
+    
   })
 })
