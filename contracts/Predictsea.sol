@@ -344,9 +344,15 @@ contract Predictsea is Ownable, IERC721Receiver {
     }
     for (uint256 index = 0; index < BoughtPredictions[msg.sender].length; index++) {
       uint256 _id = BoughtPredictions[msg.sender][index];
-      if(Predictions[_id].state == State.Active){
-       dummyList[msg.sender].push(_id);
+
+      if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Negative))
+      {
+        if(Purchases[msg.sender][_id].refunded == false){
+          dummyList[msg.sender].push(_id);
+        }
+                   
       }
+
     }
     BoughtPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
@@ -539,11 +545,12 @@ contract Predictsea is Ownable, IERC721Receiver {
       return;
     }
     for (uint256 index = 0; index < OwnedValidations[msg.sender].length; index++) {
-      ValidationData memory _Validation = OwnedValidations[msg.sender][index];
-      if(Predictions[_Validation.id].state == State.Active ||
-        Predictions[_Validation.id].state == State.Inactive
-      ){
-        dummyValidations[msg.sender].push(_Validation);
+      ValidationData memory _validation = OwnedValidations[msg.sender][index];
+
+      if(Validations[_validation.tokenId][_validation.id].settled == false){
+        
+          dummyValidations[msg.sender].push(_validation);
+             
       }
     }
     OwnedValidations[msg.sender] = dummyValidations[msg.sender];
@@ -583,10 +590,12 @@ contract Predictsea is Ownable, IERC721Receiver {
     }
     for (uint256 index = 0; index < OwnedPredictions[msg.sender].length; index++) {
       uint256 _id = OwnedPredictions[msg.sender][index];
-      if(Predictions[_id].state == State.Inactive ||
-         Predictions[_id].state == State.Active
-      ){
-        dummyList[msg.sender].push(_id);
+      if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Positive))
+      {
+        if(Predictions[_id].withdrawnEarnings == false){
+          dummyList[msg.sender].push(_id);
+        }
+                   
       }
     }
     OwnedPredictions[msg.sender] = dummyList[msg.sender];
@@ -658,7 +667,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
     miningPool.push(_id);
-    
+
     ownedPredictionsCleanup();
     OwnedPredictions[msg.sender].push(_id);
     
