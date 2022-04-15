@@ -380,6 +380,7 @@ contract Predictsea is Ownable, IERC721Receiver {
       block.timestamp >= (Predictions[current].createdAt + (4 * HOURS)),
       "Not available for mining"
     );
+    Validations[_tokenId][current].miner = msg.sender;
     Validations[_tokenId][current].assigned = true;
     PredictionStats[current].validatorCount += 1;
     OwnedValidations[msg.sender].push(
@@ -536,7 +537,7 @@ contract Predictsea is Ownable, IERC721Receiver {
   {
     LockedFunds[_user].amount += _amount;
     LockedFunds[_user].lastPushDate += block.timestamp;
-    LockedFunds[_user].releaseDate += (24 * HOURS * 30);
+    LockedFunds[_user].releaseDate += mul(mul(24, HOURS), 30);
     LockedFunds[_user].totalInstances += 1;
   }
 
@@ -590,6 +591,9 @@ contract Predictsea is Ownable, IERC721Receiver {
     }
     for (uint256 index = 0; index < OwnedPredictions[msg.sender].length; index++) {
       uint256 _id = OwnedPredictions[msg.sender][index];
+      if(Predictions[_id].state != State.Withdrawn || Predictions[_id].state != State.Rejected){
+        continue;
+      }
       if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Positive))
       {
         if(Predictions[_id].withdrawnEarnings == false){
@@ -888,7 +892,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     );
     require(
       block.timestamp > Predictions[_id].endTime + (6 * HOURS),
-      "Vote window period expired"
+      "Not cooled down yet"
     );
     if (Predictions[_id].state == State.Active) {
       Predictions[_id].state = State.Concluded;
@@ -905,10 +909,12 @@ contract Predictsea is Ownable, IERC721Receiver {
           PredictionStats[_id].buyCount *
           minerPercentage) /
         100;
-      Balances[Validations[_tokenId][_id].miner] += _minerEarnings;
+      
     }
 
-    Validations[_tokenId][_id].settled == true;
+    Balances[Validations[_tokenId][_id].miner] += _minerEarnings;
+
+    Validations[_tokenId][_id].settled = true;
 
     emit MinerSettled(msg.sender, _id, _tokenId, _minerEarnings, _refunded);
   }
@@ -1106,5 +1112,10 @@ contract Predictsea is Ownable, IERC721Receiver {
   {
     return BoughtPredictions[buyer].length;
   }
+
+  function getRecentPrediction(address seller, uint8 index) public view returns(uint256) {
+    return User[seller].last30Predictions[index];
+  }
+
 
 }

@@ -45,6 +45,7 @@ interface PredictseaInterface extends ethers.utils.Interface {
     "getMiningPoolLength()": FunctionFragment;
     "getOwnedPredictionsLength(address)": FunctionFragment;
     "getOwnedValidationsLength(address)": FunctionFragment;
+    "getRecentPrediction(address,uint8)": FunctionFragment;
     "lock()": FunctionFragment;
     "locked()": FunctionFragment;
     "minerPercentage()": FunctionFragment;
@@ -159,6 +160,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
   encodeFunctionData(
     functionFragment: "getOwnedValidationsLength",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getRecentPrediction",
+    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
@@ -324,6 +329,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getOwnedValidationsLength",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getRecentPrediction",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
@@ -830,6 +839,12 @@ export class Predictsea extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { length: BigNumber }>;
 
+    getRecentPrediction(
+      seller: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     lock(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -1158,6 +1173,12 @@ export class Predictsea extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  getRecentPrediction(
+    seller: string,
+    index: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   lock(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -1483,6 +1504,12 @@ export class Predictsea extends BaseContract {
 
     getOwnedValidationsLength(
       miner: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getRecentPrediction(
+      seller: string,
+      index: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -2019,6 +2046,12 @@ export class Predictsea extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getRecentPrediction(
+      seller: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     lock(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -2271,6 +2304,12 @@ export class Predictsea extends BaseContract {
 
     getOwnedValidationsLength(
       miner: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getRecentPrediction(
+      seller: string,
+      index: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

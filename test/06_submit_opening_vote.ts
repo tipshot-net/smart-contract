@@ -408,4 +408,76 @@ describe("submitOpeningVote function", async function () {
 
     
   })
+
+  it("removes from miner owned validations if prediction is rejected", async function () {
+    const latestBlock = await ethers.provider.getBlock("latest")
+    const _startTime = latestBlock.timestamp + 43200
+    const _endTime = _startTime + 86400
+    await contract
+      .connect(user2)
+      .createPrediction(
+        "hellothere123",
+        "hithere123",
+        _startTime,
+        _endTime,
+        2,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee,
+        },
+      )
+    await ethers.provider.send("evm_increaseTime", [14400])
+    await contract.connect(miner1).requestValidation(
+      1, //tokenId
+      "miner1_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner2).requestValidation(
+      2, //tokenId
+      "miner2_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner3).requestValidation(
+      3, //tokenId
+      "miner3_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner1).submitOpeningVote(1, 1, 2)
+
+    await contract.connect(miner2).submitOpeningVote(1, 2, 2)
+
+    await contract.connect(miner3).submitOpeningVote(1, 3, 2)
+
+    expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(1)
+
+    expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1);
+
+    await contract.connect(miner1).withdrawMinerNftandStakingFee(1,1);
+
+    await minerNFT.connect(miner1).approve(contract.address, 1)
+
+    await contract.connect(miner1).requestValidation(
+      1, //tokenId
+      "miner1_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    expect((await contract.OwnedValidations(miner1.address, 0)).id).to.equal(2)
+
+    expect(await contract.getOwnedValidationsLength(miner1.address)).to.equal(1);
+
+    
+  })
+
 })
