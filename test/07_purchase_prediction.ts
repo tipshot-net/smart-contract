@@ -6,7 +6,7 @@ import { Predictsea, PredictNFT } from "../typechain";
 import state from "./variables";
 
 
-describe("purchasePrediction function", async function () {
+describe("Purchase prediction", async function () {
 
   let contractOwner: SignerWithAddress;
   let contract: Predictsea;

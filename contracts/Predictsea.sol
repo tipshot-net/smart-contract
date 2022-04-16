@@ -536,8 +536,13 @@ contract Predictsea is Ownable, IERC721Receiver {
     notZeroAddress(_user)
   {
     LockedFunds[_user].amount += _amount;
-    LockedFunds[_user].lastPushDate += block.timestamp;
-    LockedFunds[_user].releaseDate += mul(mul(24, HOURS), 30);
+    
+    if(LockedFunds[_user].lastPushDate == 0){
+      LockedFunds[_user].releaseDate = add(block.timestamp, mul(mul(24, HOURS), 30));
+    }else{
+      LockedFunds[_user].releaseDate += mul(mul(24, HOURS), 30);
+    }
+    LockedFunds[_user].lastPushDate = block.timestamp;
     LockedFunds[_user].totalInstances += 1;
   }
 
@@ -934,7 +939,7 @@ contract Predictsea is Ownable, IERC721Receiver {
       "Prediction won"
     );
     Balances[msg.sender] += Predictions[_id].price;
-    Purchases[msg.sender][_id].refunded == true;
+    Purchases[msg.sender][_id].refunded = true;
     emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
   }
 
@@ -945,18 +950,19 @@ contract Predictsea is Ownable, IERC721Receiver {
     );
     require(Predictions[_id].withdrawnEarnings == false, "Earnings withdrawn");
 
-    uint256 _sellerEarnings = 0;
-    if (Predictions[_id].winningClosingVote == ValidationStatus.Positive) {
+    require(Predictions[_id].winningClosingVote == ValidationStatus.Positive, "Prediction lost!");
+
+     
       uint256 _minerEarnings = (Predictions[_id].price *
         PredictionStats[_id].buyCount *
         minerPercentage) / 100;
       uint256 _totalMinersRewards = _minerEarnings *
         PredictionStats[_id].validatorCount;
-      _sellerEarnings =
+      uint256 _sellerEarnings =
         (Predictions[_id].price * PredictionStats[_id].buyCount) -
         _totalMinersRewards;
-    }
-    Predictions[_id].withdrawnEarnings == true;
+   
+    Predictions[_id].withdrawnEarnings = true;
     Balances[Predictions[_id].seller] += _sellerEarnings;
     emit SellerSettled(msg.sender, _id, _sellerEarnings);
   }
@@ -983,7 +989,7 @@ contract Predictsea is Ownable, IERC721Receiver {
   ///@param _amount Amount to be withdrawn
 
   function transferLockedFunds(uint256 _amount) external {
-    require(LockedFunds[msg.sender].amount > _amount, "Not enough balance");
+    require(LockedFunds[msg.sender].amount >= _amount, "Not enough balance");
     require(
       block.timestamp > LockedFunds[msg.sender].releaseDate,
       "Assets still frozen"

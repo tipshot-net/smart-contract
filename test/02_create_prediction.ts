@@ -5,7 +5,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Predictsea } from "../typechain"
 import state from "./variables"
 
-describe("createPrediction function", async function () {
+describe("Create prediction", async function () {
   let contractOwner: SignerWithAddress
   let contract: Predictsea
   let user1: SignerWithAddress

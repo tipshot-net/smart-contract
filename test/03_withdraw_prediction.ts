@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Predictsea, PredictNFT } from "../typechain"
 import state from "./variables"
 
-describe("withdrawPrediction function", async function () {
+describe("Withdraw prediction", async function () {
   let contractOwner: SignerWithAddress
   let contract: Predictsea
   let minerNFT: PredictNFT
@@ -132,7 +132,7 @@ describe("withdrawPrediction function", async function () {
     ).to.be.revertedWith("Prediction already mined")
   })
 
-  it("removes from owned predictions if prediction is withdrawn", async function () {
+  it("removes from seller's owned predictions if prediction is withdrawn", async function () {
     const latestBlock = await ethers.provider.getBlock("latest")
     const _startTime = latestBlock.timestamp + 43200
     const _endTime = _startTime + 86400

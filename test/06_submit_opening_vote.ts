@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Predictsea, PredictNFT } from "../typechain"
 import state from "./variables"
 
-describe("submitOpeningVote function", async function () {
+describe("Submit opening vote", async function () {
   let contractOwner: SignerWithAddress
   let contract: Predictsea
   let minerNFT: PredictNFT
