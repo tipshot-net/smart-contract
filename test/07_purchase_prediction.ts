@@ -44,7 +44,7 @@ describe("Purchase prediction", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee
@@ -149,7 +149,7 @@ describe("Purchase prediction", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee

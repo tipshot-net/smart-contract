@@ -72,7 +72,7 @@ describe("Settle miner", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -86,7 +86,7 @@ describe("Settle miner", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -275,9 +275,21 @@ describe("Settle miner", async function () {
 
     expect(await contract.Balances(miner1.address)).to.equal(miningFeeShare)
 
+    expect((await contract.User(user1.address)).wonCount).to.equal(0)
+
+    expect((await contract.User(user1.address)).lostCount).to.equal(0)
+
+    expect((await contract.User(user1.address)).totalPredictions).to.equal(0)
+
     await contract.connect(miner1).settleMiner(1, 1);
 
     expect((await contract.Predictions(1)).state).to.equal(4)
+
+    expect((await contract.User(user1.address)).wonCount).to.equal(1)
+
+    expect((await contract.User(user1.address)).lostCount).to.equal(0)
+
+    expect((await contract.User(user1.address)).totalPredictions).to.equal(1)
 
     expect((await contract.Predictions(1)).winningOpeningVote).to.equal(1)
 

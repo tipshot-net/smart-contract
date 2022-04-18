@@ -101,7 +101,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     uint256 createdAt;
     uint256 startTime; //start time of first predicted event
     uint256 endTime; //end time of last predicted event
-    uint16 odd;
+    uint32 odd;
     uint256 price;
     Status status;
     State state;
@@ -137,9 +137,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     uint256 wonCount;
     uint256 lostCount;
     uint256 totalPredictions;
-    uint256 totalOdds;
-    uint256 grossWinnings;
-    uint256[30] last30Predictions;
+    uint256[10] recentTips;
     uint8 spot;
   }
 
@@ -246,13 +244,13 @@ contract Predictsea is Ownable, IERC721Receiver {
     _;
   }
 
-  modifier predictionMeetsMinimumRequirements(
+  modifier tipsMeetsTimeRequirements(
     uint256 _startTime,
     uint256 _endTime
   ) {
     require(
-      _sellerDoesMeetMinimumRequirements(_startTime, _endTime),
-      "Doesn't meet min requirements"
+      _isValidTiming(_startTime, _endTime),
+      "Doesn't meet time requirements"
     );
 
     _;
@@ -462,14 +460,15 @@ contract Predictsea is Ownable, IERC721Receiver {
     Index[_id] = activePool.length - 1;
   }
 
-  function addToRecentPredictionsList(address seller, uint256 _id) internal {
-    if (User[seller].spot == 30) {
-      User[seller].spot == 0;
+  function addToRecentPredictionsList(address tipster, uint256 _id) internal {
+    if (User[tipster].spot == 10) {
+      User[tipster].spot == 0;
     }
-    uint8 _spot = User[seller].spot;
-    User[seller].last30Predictions[_spot] = _id;
-    User[seller].spot += 1;
+    uint8 _spot = User[tipster].spot;
+    User[tipster].recentTips[_spot] = _id;
+    User[tipster].spot += 1;
   }
+
 
   function removeFromActivePool(uint256 _id) internal {
     uint256 _index = Index[_id];
@@ -575,7 +574,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     uint256 _price
   )
     internal
-    predictionMeetsMinimumRequirements(_startTime, _endTime)
+    tipsMeetsTimeRequirements(_startTime, _endTime)
   {
    
     Predictions[_id].seller = msg.sender;
@@ -585,7 +584,13 @@ contract Predictsea is Ownable, IERC721Receiver {
     Predictions[_id].startTime = _startTime;
     Predictions[_id].endTime = _endTime;
     Predictions[_id].odd = _odd;
-    Predictions[_id].price = _price;
+    
+    if(canChargeFee(msg.sender)){
+      Predictions[_id].price = _price;
+    }else{
+      Predictions[_id].price = 0;
+    }
+    
 
   }
 
@@ -609,6 +614,30 @@ contract Predictsea is Ownable, IERC721Receiver {
     }
     OwnedPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
+  }
+
+  function canChargeFee(address _tipster) internal view returns(bool isProfitable) {
+    if(User[_tipster].totalPredictions < 10){
+      /*** 
+    |change return value to [false] before deployment.
+    ------------------------------------------------------
+    |cannot be tested on local hardhat network due to current framework limitation
+    |**feature to be tested rigorously with a bot script on testnet
+    */ 
+      return true;
+    }
+    uint16 capitalEmployed = 10000;
+    uint256 earned = 0;
+    for(uint256 index = 0; index < User[_tipster].recentTips.length; index++) {
+      if(Predictions[User[_tipster].recentTips[index]].winningClosingVote == ValidationStatus.Positive){
+         earned += mul(Predictions[User[_tipster].recentTips[index]].odd, 10); 
+      }    
+    }
+    if(capitalEmployed - earned > 0){
+      return true;
+    }
+    
+    return false;
   }
 
 
@@ -657,6 +686,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     uint16 _odd,
     uint256 _price
   ) external payable  {
+    require(_odd > 100, "Odd must be greater than 1");
     if (msg.value < miningFee) {
       require(
         Balances[msg.sender] >= sub(miningFee, msg.value),
@@ -903,6 +933,12 @@ contract Predictsea is Ownable, IERC721Receiver {
       Predictions[_id].state = State.Concluded;
       Predictions[_id].winningOpeningVote = _getWinningOpeningVote(_id);
       Predictions[_id].winningClosingVote = _getWinningClosingVote(_id);
+      if(Predictions[_id].winningClosingVote == ValidationStatus.Positive){
+          User[Predictions[_id].seller].wonCount += 1;
+        }else{
+           User[Predictions[_id].seller].lostCount += 1;
+       }
+      User[Predictions[_id].seller].totalPredictions += 1;
       addToRecentPredictionsList(Predictions[_id].seller, _id);
       removeFromActivePool(_id);
     }
@@ -1071,7 +1107,7 @@ contract Predictsea is Ownable, IERC721Receiver {
   /// @param _endTime Timestamp of the proposed end of the last prediction event
   ///@return bool
 
-  function _sellerDoesMeetMinimumRequirements(
+  function _isValidTiming(
     uint256 _startTime,
     uint256 _endTime
   ) internal view returns (bool) {
@@ -1080,6 +1116,7 @@ contract Predictsea is Ownable, IERC721Receiver {
       add(block.timestamp, mul(8, HOURS)) > _startTime ||
       _startTime > add(block.timestamp, mul(24, HOURS)) ||
       sub(_endTime, _startTime) > mul(24, HOURS)
+      
     ) {
       return false;
     }
@@ -1120,7 +1157,7 @@ contract Predictsea is Ownable, IERC721Receiver {
   }
 
   function getRecentPrediction(address seller, uint8 index) public view returns(uint256) {
-    return User[seller].last30Predictions[index];
+    return User[seller].recentTips[index];
   }
 
 

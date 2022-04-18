@@ -33,6 +33,7 @@ contract PredictNFT is ERC721URIStorage, Ownable {
 
   function mintToken(string memory tokenURI) public returns (uint256) {
     require(canMint[msg.sender], "Cannot mint token");
+    
     _tokenIds.increment();
 
     uint256 newTokenId = _tokenIds.current();
@@ -66,7 +67,7 @@ contract PredictNFT is ERC721URIStorage, Ownable {
    *************************************************************************/
 
   function whitelist() external payable {
-    require(totalMinted < mintLimit, "Current limit reached");
+    require(totalMinted < mintLimit, "Max limit reached");
     require(msg.value >= sellingPrice, "Not enough ether sent");
     require(!canMint[msg.sender], "Unused mint access");
     canMint[msg.sender] = true;

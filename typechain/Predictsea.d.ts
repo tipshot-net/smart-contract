@@ -742,23 +742,12 @@ export class Predictsea extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [
-        string,
-        string,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        number
-      ] & {
+      [string, string, BigNumber, BigNumber, BigNumber, number] & {
         profile: string;
         key: string;
         wonCount: BigNumber;
         lostCount: BigNumber;
         totalPredictions: BigNumber;
-        totalOdds: BigNumber;
-        grossWinnings: BigNumber;
         spot: number;
       }
     >;
@@ -1083,23 +1072,12 @@ export class Predictsea extends BaseContract {
     arg0: string,
     overrides?: CallOverrides
   ): Promise<
-    [
-      string,
-      string,
-      BigNumber,
-      BigNumber,
-      BigNumber,
-      BigNumber,
-      BigNumber,
-      number
-    ] & {
+    [string, string, BigNumber, BigNumber, BigNumber, number] & {
       profile: string;
       key: string;
       wonCount: BigNumber;
       lostCount: BigNumber;
       totalPredictions: BigNumber;
-      totalOdds: BigNumber;
-      grossWinnings: BigNumber;
       spot: number;
     }
   >;
@@ -1414,23 +1392,12 @@ export class Predictsea extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [
-        string,
-        string,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        BigNumber,
-        number
-      ] & {
+      [string, string, BigNumber, BigNumber, BigNumber, number] & {
         profile: string;
         key: string;
         wonCount: BigNumber;
         lostCount: BigNumber;
         totalPredictions: BigNumber;
-        totalOdds: BigNumber;
-        grossWinnings: BigNumber;
         spot: number;
       }
     >;

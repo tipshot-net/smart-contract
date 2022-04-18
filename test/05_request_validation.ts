@@ -58,7 +58,7 @@ describe("Request validation", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -72,7 +72,7 @@ describe("Request validation", async function () {
         "newkey123",
         _startTime + 14400,
         _endTime + 14400,
-        3,
+        300,
         ethers.utils.parseEther("20.0"),
         {
           value: state.miningFee,

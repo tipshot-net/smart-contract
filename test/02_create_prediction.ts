@@ -43,7 +43,7 @@ describe("Create prediction", async function () {
           "hithere123",
           _startTime,
           _endTime,
-          2,
+          200,
           ethers.utils.parseEther("10.0"),
           {
             value: state.miningFee,
@@ -59,7 +59,7 @@ describe("Create prediction", async function () {
       )
       expect(current.startTime).to.equal(_startTime)
       expect(current.endTime).to.equal(_endTime)
-      expect(current.odd).to.equal(2)
+      expect(current.odd).to.equal(200)
       expect(current.price).to.equal(ethers.utils.parseEther("10.0"))
       expect(await contract.miningPool(0)).to.equal(1)
       expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
@@ -83,15 +83,16 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee,
             },
           ),
-      ).to.be.revertedWith("Doesn't meet min requirements")
+      ).to.be.revertedWith("Doesn't meet time requirements")
     })
 
+    
     it("should revert if end time is less than start time", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")
       const _startTime = latestBlock.timestamp + 43200
@@ -104,7 +105,7 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee,
@@ -126,13 +127,13 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee,
             },
           ),
-      ).to.be.revertedWith("Doesn't meet min requirements")
+      ).to.be.revertedWith("Doesn't meet time requirements")
     })
 
     it("should revert if (endtime - starttime) > 48 hours", async function () {
@@ -148,14 +149,38 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee,
             },
           ),
-      ).to.be.revertedWith("Doesn't meet min requirements")
+      ).to.be.revertedWith("Doesn't meet time requirements")
     })
+
+    //odds consideration
+    
+    it("should revert if odd is less that or equal to 1", async function () {
+      const latestBlock = await ethers.provider.getBlock("latest")
+      const _startTime = latestBlock.timestamp + 43200
+      const _endTime = _startTime + 86400
+      await expect(
+        contract
+          .connect(user1)
+          .createPrediction(
+            "hellothere123",
+            "hithere123",
+            _startTime,
+            _endTime,
+            100,
+            ethers.utils.parseEther("10.0"),
+            {
+              value: state.miningFee,
+            },
+          ),
+      ).to.be.revertedWith("Odd must be greater than 1")
+    })
+
 
     it("reverts if sent eth is less than (miningFee + sellerStakingFee)", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")
@@ -170,7 +195,7 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee.sub(ethers.utils.parseEther("2.0")),
@@ -191,7 +216,7 @@ describe("Create prediction", async function () {
           "hithere123",
           _startTime,
           _endTime,
-          2,
+          200,
           ethers.utils.parseEther("10.0"),
           {
             value: state.miningFee.add(ethers.utils.parseEther("2.0")),
@@ -223,7 +248,7 @@ describe("Create prediction", async function () {
           "hithere123",
           _startTime,
           _endTime,
-          2,
+          200,
           ethers.utils.parseEther("10.0"),
           {
             value: state.miningFee.sub(ethers.utils.parseEther("2.0")),
@@ -240,7 +265,7 @@ describe("Create prediction", async function () {
       )
       expect(current.startTime).to.equal(_startTime)
       expect(current.endTime).to.equal(_endTime)
-      expect(current.odd).to.equal(2)
+      expect(current.odd).to.equal(200)
       expect(current.price).to.equal(ethers.utils.parseEther("10.0"))
       expect(await contract.miningPool(0)).to.equal(1)
       expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
@@ -262,7 +287,7 @@ describe("Create prediction", async function () {
             "hithere123",
             _startTime,
             _endTime,
-            2,
+            200,
             ethers.utils.parseEther("10.0"),
             {
               value: state.miningFee,

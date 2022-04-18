@@ -44,7 +44,7 @@ describe("Update prediction", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -59,7 +59,7 @@ describe("Update prediction", async function () {
         "newkey123",
         _startTime + 3600,
         _endTime + 3600,
-        3,
+        300,
         ethers.utils.parseEther("20.0"),
       )
 
@@ -73,7 +73,7 @@ describe("Update prediction", async function () {
     )
     expect(current.startTime).to.equal(_startTime + 3600)
     expect(current.endTime).to.equal(_endTime + 3600)
-    expect(current.odd).to.equal(3)
+    expect(current.odd).to.equal(300)
     expect(current.price).to.equal(ethers.utils.parseEther("20.0"))
     expect(await contract.miningPool(0)).to.equal(1)
     expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
@@ -94,7 +94,7 @@ describe("Update prediction", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -110,7 +110,7 @@ describe("Update prediction", async function () {
           "newkey123",
           _startTime + 3600,
           _endTime + 3600,
-          3,
+          300,
           ethers.utils.parseEther("20.0"),
         ),
     ).to.be.revertedWith("Only prediction seller")
@@ -148,7 +148,7 @@ describe("Update prediction", async function () {
         "hithere123",
         _startTime,
         _endTime,
-        2,
+        200,
         ethers.utils.parseEther("10.0"),
         {
           value: state.miningFee,
@@ -173,7 +173,7 @@ describe("Update prediction", async function () {
           "newkey123",
           _startTime + 3600,
           _endTime + 3600,
-          3,
+          300,
           ethers.utils.parseEther("20.0"),
         ),
     ).to.be.revertedWith("Prediction already mined")
