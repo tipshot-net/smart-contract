@@ -60,7 +60,7 @@ describe("Create prediction", async function () {
       expect(current.startTime).to.equal(_startTime)
       expect(current.endTime).to.equal(_endTime)
       expect(current.odd).to.equal(200)
-      expect(current.price).to.equal(ethers.utils.parseEther("10.0"))
+      expect(current.price).to.equal(ethers.utils.parseEther("0.0"))
       expect(await contract.miningPool(0)).to.equal(1)
       expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
       expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1)
@@ -266,7 +266,6 @@ describe("Create prediction", async function () {
       expect(current.startTime).to.equal(_startTime)
       expect(current.endTime).to.equal(_endTime)
       expect(current.odd).to.equal(200)
-      expect(current.price).to.equal(ethers.utils.parseEther("10.0"))
       expect(await contract.miningPool(0)).to.equal(1)
       expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
 

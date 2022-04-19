@@ -462,7 +462,7 @@ contract Predictsea is Ownable, IERC721Receiver {
 
   function addToRecentPredictionsList(address tipster, uint256 _id) internal {
     if (User[tipster].spot == 10) {
-      User[tipster].spot == 0;
+      User[tipster].spot = 0;
     }
     uint8 _spot = User[tipster].spot;
     User[tipster].recentTips[_spot] = _id;
@@ -601,7 +601,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     }
     for (uint256 index = 0; index < OwnedPredictions[msg.sender].length; index++) {
       uint256 _id = OwnedPredictions[msg.sender][index];
-      if(Predictions[_id].state != State.Withdrawn || Predictions[_id].state != State.Rejected){
+      if(Predictions[_id].state == State.Withdrawn || Predictions[_id].state == State.Rejected){
         continue;
       }
       if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Positive))
@@ -624,7 +624,7 @@ contract Predictsea is Ownable, IERC721Receiver {
     |cannot be tested on local hardhat network due to current framework limitation
     |**feature to be tested rigorously with a bot script on testnet
     */ 
-      return true;
+      return false;
     }
     uint16 capitalEmployed = 10000;
     uint256 earned = 0;
@@ -633,7 +633,7 @@ contract Predictsea is Ownable, IERC721Receiver {
          earned += mul(Predictions[User[_tipster].recentTips[index]].odd, 10); 
       }    
     }
-    if(capitalEmployed - earned > 0){
+    if(earned > capitalEmployed){
       return true;
     }
     

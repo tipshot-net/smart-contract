@@ -349,8 +349,5 @@ describe("Settle miner", async function () {
     expect(await contract.Balances(miner4.address)).to.equal(miningFeeShare.add(state.minerStakingFee))
   })
 
-  it("removes from miner's owned validations list when prediction concluded", async function () {
-    
-  })
 
 })

@@ -112,25 +112,7 @@ describe("Purchase prediction", async function () {
 
   })
 
-  it("reverts if eth sent for purchase less than price", async function () {
-    await expect(contract.connect(buyer1).purchasePrediction(1, "mykey", {
-      value: ethers.utils.parseEther("5.0")
-    })).to.be.revertedWith("Insufficient balance");
-  })
-
-  it("deducts from balances if eth sent for purchase isn't enough", async function () {
-    let tx = {
-      to: contract.address,
-      value: ethers.utils.parseEther("5.0") 
-  };
-
-    await buyer1.sendTransaction(tx);
-    await contract.connect(buyer1).purchasePrediction(1, "mykey", {
-      value: ethers.utils.parseEther("5.0")
-    })
-    expect(await contract.Balances(buyer1.address)).to.equal(0);
-    expect((await contract.Purchases(buyer1.address, 1)).purchased).to.be.true;
-  })
+  
 
   it("reverts if prediction event already started", async function () {
     await ethers.provider.send("evm_increaseTime", [28900]);

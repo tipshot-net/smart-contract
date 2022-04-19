@@ -74,7 +74,7 @@ describe("Update prediction", async function () {
     expect(current.startTime).to.equal(_startTime + 3600)
     expect(current.endTime).to.equal(_endTime + 3600)
     expect(current.odd).to.equal(300)
-    expect(current.price).to.equal(ethers.utils.parseEther("20.0"))
+    expect(current.price).to.equal(ethers.utils.parseEther("0.0"))
     expect(await contract.miningPool(0)).to.equal(1)
     expect(await contract.OwnedPredictions(user1.address, 0)).to.equal(1)
     expect(await contract.connect(user1).getMiningPoolLength()).to.equal(1)

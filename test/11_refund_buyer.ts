@@ -179,20 +179,10 @@ describe("Refund buyer", async function () {
 
 
     await contract.connect(buyer1).purchasePrediction(1, "buyerkey1", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("0.0")
     })
-    await contract.connect(buyer2).purchasePrediction(1, "buyerkey2", {
-      value: ethers.utils.parseEther("10.0")
-    })
-    await contract.connect(buyer3).purchasePrediction(1, "buyerkey3", {
-      value: ethers.utils.parseEther("10.0")
-    })
-    await contract.connect(buyer4).purchasePrediction(1, "buyerkey4", {
-      value: ethers.utils.parseEther("10.0")
-    })
-    await contract.connect(buyer5).purchasePrediction(1, "buyerkey5", {
-      value: ethers.utils.parseEther("10.0")
-    })
+    
+    
 
     await ethers.provider.send("evm_increaseTime", [136000]);
   })
@@ -271,6 +261,8 @@ describe("Refund buyer", async function () {
 
     
   })
+
+  
 
 
 
