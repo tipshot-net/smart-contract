@@ -29,7 +29,9 @@ describe("Create prediction", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
   })
+    
 
   describe("seller creates prediction", async function () {
     it("sets all prediction data", async function () {

@@ -30,6 +30,8 @@ describe("Withdraw prediction", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
+    
   })
 
   describe("seller withdraw prediction before it was mined", async function () {

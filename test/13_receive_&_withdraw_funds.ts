@@ -28,6 +28,8 @@ describe("Recieve & withdraw funds", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
+    await contract.connect(contractOwner).setFreeTipsQuota(100) 
+  
   })
 
   it("adds funds to user's balances", async function () {

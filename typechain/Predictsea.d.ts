@@ -40,6 +40,7 @@ interface PredictseaInterface extends ethers.utils.Interface {
     "createPrediction(string,string,uint256,uint256,uint16,uint256)": FunctionFragment;
     "dummyList(address,uint256)": FunctionFragment;
     "dummyValidations(address,uint256)": FunctionFragment;
+    "freeTipsQuota()": FunctionFragment;
     "getActivePoolLength()": FunctionFragment;
     "getBoughtPredictionsLength(address)": FunctionFragment;
     "getMiningPoolLength()": FunctionFragment;
@@ -59,6 +60,7 @@ interface PredictseaInterface extends ethers.utils.Interface {
     "purchasePrediction(uint256,string)": FunctionFragment;
     "refundBuyer(uint256)": FunctionFragment;
     "requestValidation(uint256,string)": FunctionFragment;
+    "setFreeTipsQuota(uint8)": FunctionFragment;
     "setNftAddress(address)": FunctionFragment;
     "setVariables(uint256,uint256,uint32)": FunctionFragment;
     "settleMiner(uint256,uint256)": FunctionFragment;
@@ -69,6 +71,7 @@ interface PredictseaInterface extends ethers.utils.Interface {
     "transferOwnership()": FunctionFragment;
     "unlock()": FunctionFragment;
     "updatePrediction(uint256,string,string,uint256,uint256,uint16,uint256)": FunctionFragment;
+    "usedFreeQuota()": FunctionFragment;
     "withdrawFunds(uint256)": FunctionFragment;
     "withdrawMinerNftandStakingFee(uint256,uint256)": FunctionFragment;
     "withdrawPrediction(uint256)": FunctionFragment;
@@ -142,6 +145,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "freeTipsQuota",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "getActivePoolLength",
     values?: undefined
   ): string;
@@ -206,6 +213,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
     values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
+    functionFragment: "setFreeTipsQuota",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setNftAddress",
     values: [string]
   ): string;
@@ -249,6 +260,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
       BigNumberish,
       BigNumberish
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "usedFreeQuota",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawFunds",
@@ -309,6 +324,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "dummyList", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "dummyValidations",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "freeTipsQuota",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -373,6 +392,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setFreeTipsQuota",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setNftAddress",
     data: BytesLike
   ): Result;
@@ -407,6 +430,10 @@ interface PredictseaInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "updatePrediction",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "usedFreeQuota",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -805,6 +832,8 @@ export class Predictsea extends BaseContract {
       }
     >;
 
+    freeTipsQuota(overrides?: CallOverrides): Promise<[number]>;
+
     getActivePoolLength(
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { length: BigNumber }>;
@@ -885,6 +914,11 @@ export class Predictsea extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setFreeTipsQuota(
+      _quota: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setNftAddress(
       _NftAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -945,6 +979,8 @@ export class Predictsea extends BaseContract {
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    usedFreeQuota(overrides?: CallOverrides): Promise<[number]>;
 
     withdrawFunds(
       _amount: BigNumberish,
@@ -1132,6 +1168,8 @@ export class Predictsea extends BaseContract {
     }
   >;
 
+  freeTipsQuota(overrides?: CallOverrides): Promise<number>;
+
   getActivePoolLength(overrides?: CallOverrides): Promise<BigNumber>;
 
   getBoughtPredictionsLength(
@@ -1205,6 +1243,11 @@ export class Predictsea extends BaseContract {
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setFreeTipsQuota(
+    _quota: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setNftAddress(
     _NftAddress: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -1265,6 +1308,8 @@ export class Predictsea extends BaseContract {
     _price: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  usedFreeQuota(overrides?: CallOverrides): Promise<number>;
 
   withdrawFunds(
     _amount: BigNumberish,
@@ -1455,6 +1500,8 @@ export class Predictsea extends BaseContract {
       }
     >;
 
+    freeTipsQuota(overrides?: CallOverrides): Promise<number>;
+
     getActivePoolLength(overrides?: CallOverrides): Promise<BigNumber>;
 
     getBoughtPredictionsLength(
@@ -1526,6 +1573,11 @@ export class Predictsea extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setFreeTipsQuota(
+      _quota: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setNftAddress(
       _NftAddress: string,
       overrides?: CallOverrides
@@ -1579,6 +1631,8 @@ export class Predictsea extends BaseContract {
       _price: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    usedFreeQuota(overrides?: CallOverrides): Promise<number>;
 
     withdrawFunds(
       _amount: BigNumberish,
@@ -1994,6 +2048,8 @@ export class Predictsea extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    freeTipsQuota(overrides?: CallOverrides): Promise<BigNumber>;
+
     getActivePoolLength(overrides?: CallOverrides): Promise<BigNumber>;
 
     getBoughtPredictionsLength(
@@ -2070,6 +2126,11 @@ export class Predictsea extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setFreeTipsQuota(
+      _quota: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     setNftAddress(
       _NftAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -2130,6 +2191,8 @@ export class Predictsea extends BaseContract {
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    usedFreeQuota(overrides?: CallOverrides): Promise<BigNumber>;
 
     withdrawFunds(
       _amount: BigNumberish,
@@ -2251,6 +2314,8 @@ export class Predictsea extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    freeTipsQuota(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     getActivePoolLength(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2331,6 +2396,11 @@ export class Predictsea extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    setFreeTipsQuota(
+      _quota: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     setNftAddress(
       _NftAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -2391,6 +2461,8 @@ export class Predictsea extends BaseContract {
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
+
+    usedFreeQuota(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     withdrawFunds(
       _amount: BigNumberish,

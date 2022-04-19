@@ -148,6 +148,10 @@ contract Predictsea is Ownable, IERC721Receiver {
   uint256[] public miningPool;
   uint256[] public activePool;
 
+  uint8 public freeTipsQuota;
+
+  uint8 public usedFreeQuota;
+
  
 
   
@@ -590,6 +594,10 @@ contract Predictsea is Ownable, IERC721Receiver {
     }else{
       Predictions[_id].price = 0;
     }
+
+    if(Predictions[_id].price == 0){
+      require(usedFreeQuota < freeTipsQuota, "Free quota used up!");
+    }
     
 
   }
@@ -668,6 +676,10 @@ contract Predictsea is Ownable, IERC721Receiver {
     notZeroAddress(_NftAddress)
   {
     NFT_CONTRACT_ADDRESS = _NftAddress;
+  }
+
+  function setFreeTipsQuota(uint8 _quota) external onlyOwner {
+    freeTipsQuota = _quota;
   }
 
   ///@dev creates new prediction added to the mining pool
@@ -808,6 +820,9 @@ contract Predictsea is Ownable, IERC721Receiver {
       //prediction receives 60% positive validations
       Predictions[_id].state = State.Active;
       addToActivePool(_id);
+      if(Predictions[_id].price == 0){
+        usedFreeQuota += 1;
+      }
     }
 
     if (PredictionStats[_id].downvoteCount == SIXTY_PERCENT) {
@@ -931,6 +946,9 @@ contract Predictsea is Ownable, IERC721Receiver {
     );
     if (Predictions[_id].state == State.Active) {
       Predictions[_id].state = State.Concluded;
+      if(Predictions[_id].price == 0){
+        usedFreeQuota -= 1;
+      }
       Predictions[_id].winningOpeningVote = _getWinningOpeningVote(_id);
       Predictions[_id].winningClosingVote = _getWinningClosingVote(_id);
       if(Predictions[_id].winningClosingVote == ValidationStatus.Positive){

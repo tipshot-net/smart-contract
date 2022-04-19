@@ -30,6 +30,9 @@ describe("set up contract", async function () {
           state.minerStakingFee,
           state.minerPercentage,
         )
+      expect(await contract.freeTipsQuota()).to.equal(0)
+      await contract.connect(contractOwner).setFreeTipsQuota(100)
+      expect(await contract.freeTipsQuota()).to.equal(100)
       expect(await contract.miningFee()).to.equal(state.miningFee)
       expect(await contract.minerStakingFee()).to.equal(state.minerStakingFee)
       expect(await contract.minerPercentage()).to.equal(state.minerPercentage)

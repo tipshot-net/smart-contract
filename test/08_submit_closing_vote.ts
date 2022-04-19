@@ -46,6 +46,9 @@ describe("Submit closing vote", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
+      
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
+    
 
     const latestBlock = await ethers.provider.getBlock("latest")
     const _startTime = latestBlock.timestamp + 43200

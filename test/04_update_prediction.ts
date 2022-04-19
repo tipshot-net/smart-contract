@@ -31,6 +31,9 @@ describe("Update prediction", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
+    
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
+    
   })
 
   it("allows seller to update prediction data", async function () {

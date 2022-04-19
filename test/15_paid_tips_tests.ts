@@ -58,6 +58,8 @@ describe("Paid tips tests", async function () {
         state.minerPercentage,
       )
 
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
+
     await minerNFT
       .connect(contractOwner)
       .setSellingPrice(ethers.utils.parseEther("2.0"))
@@ -178,6 +180,8 @@ describe("Paid tips tests", async function () {
       await contract.connect(buyer5).purchasePrediction(index, "buyerkey5", {
         value: ethers.utils.parseEther("10.0")
       })
+    }else{
+      expect(await contract.usedFreeQuota()).to.equal(1)
     }
 
     await ethers.provider.send("evm_increaseTime", [136000]);
@@ -486,17 +490,120 @@ describe("Paid tips tests", async function () {
 
     expect(await contract.Balances(buyer2.address)).to.equal((await contract.Predictions(11)).price);
 
+  })
+
+  it("disallows new free tips if quota is reached", async function () {
+    await contract.connect(contractOwner).setFreeTipsQuota(10)
+    for (let index = 1; index <= 10; index++) {
+      await contract
+      .connect(user1)
+      .createPrediction(
+        "hellothere123",
+        "hithere123",
+        (await ethers.provider.getBlock("latest")).timestamp + 43200,
+        (await ethers.provider.getBlock("latest")).timestamp + 129600,
+        200,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee,
+        },
+      )
+    await minerNFT.connect(miner1).approve(contract.address, 1)
+    await minerNFT.connect(miner2).approve(contract.address, 2)
+    await minerNFT.connect(miner3).approve(contract.address, 3)
+    await minerNFT.connect(miner4).approve(contract.address, 4)
+    await minerNFT.connect(miner5).approve(contract.address, 5)
+    
+
+    await ethers.provider.send("evm_increaseTime", [14400])
+    await contract.connect(miner1).requestValidation(
+      1, //tokenId
+      "miner1_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner2).requestValidation(
+      2, //tokenId
+      "miner2_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner3).requestValidation(
+      3, //tokenId
+      "miner3_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner4).requestValidation(
+      4, //tokenId
+      "miner4_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    await contract.connect(miner5).requestValidation(
+      5, //tokenId
+      "miner5_key", //key
+      {
+        value: state.minerStakingFee,
+      },
+    )
+
+    
+    await contract.connect(miner1).submitOpeningVote(index, 1, 1)
+
+    await contract.connect(miner2).submitOpeningVote(index, 2, 1)
+
+    await contract.connect(miner3).submitOpeningVote(index, 3, 1)
+
+    await contract.connect(miner4).submitOpeningVote(index, 4, 1)
+
+    await contract.connect(miner5).submitOpeningVote(index, 5, 1)
+
+
+    await ethers.provider.send("evm_increaseTime", [136000]);
+
+    await contract.connect(miner1).submitClosingVote(index, 1, 2)
+
+    await contract.connect(miner2).submitClosingVote(index, 2, 2)
+
+    await contract.connect(miner3).submitClosingVote(index, 3, 2)
+
+    await contract.connect(miner4).submitClosingVote(index, 4, 2)
+
+    await contract.connect(miner5).submitClosingVote(index, 5, 2)
+
 
     
 
+    }
+    expect(await contract.getActivePoolLength()).to.equal(10)
+    expect(await contract.usedFreeQuota()).to.equal(10)
+    
+
+    
+    await expect(contract
+      .connect(user2)
+      .createPrediction(
+        "hellothere123",
+        "hithere123",
+        (await ethers.provider.getBlock("latest")).timestamp + 43200,
+        (await ethers.provider.getBlock("latest")).timestamp + 129600,
+        200,
+        ethers.utils.parseEther("10.0"),
+        {
+          value: state.miningFee,
+        },
+      )).to.be.revertedWith("Free quota used up!")
+
+   
   })
-
-  
-
-  
-
-
-
-
 
 })

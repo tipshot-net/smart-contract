@@ -58,6 +58,9 @@ describe("Settle seller", async function () {
         state.minerPercentage,
       )
 
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
+    
+
     const latestBlock = await ethers.provider.getBlock("latest")
     const _startTime = latestBlock.timestamp + 43200
     let _endTime = _startTime + 86400
