@@ -2,25 +2,26 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 const { BigNumber } = require("ethers")
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Predictsea } from "../typechain"
+import { Tipshot, MinerNFT } from "../typechain"
 import state from "./variables"
 
 describe("Create prediction", async function () {
   let contractOwner: SignerWithAddress
-  let contract: Predictsea
+  let contract: Tipshot
   let user1: SignerWithAddress
   let user2: SignerWithAddress
 
   beforeEach(async function () {
-    const Predictsea = await ethers.getContractFactory("Predictsea")
+    const Tipshot = await ethers.getContractFactory("Tipshot")
     ;[contractOwner, user1, user2] = await ethers.getSigners()
-    contract = await Predictsea.deploy()
+    contract = await Tipshot.deploy()
     await contract.deployed()
 
-    const PredictNFT = await ethers.getContractFactory("PredictNFT")
-    const NFT = await PredictNFT.deploy()
-    await NFT.deployed()
-    await contract.connect(contractOwner).setNftAddress(NFT.address)
+    
+
+    const MinerNFT = await ethers.getContractFactory("MinerNFT")
+    const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+    await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
     await contract
       .connect(contractOwner)

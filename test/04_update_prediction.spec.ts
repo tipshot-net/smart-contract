@@ -2,25 +2,25 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 const { BigNumber } = require("ethers")
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Predictsea, PredictNFT } from "../typechain"
+import { Tipshot, MinerNFT } from "../typechain"
 import state from "./variables"
 
 describe("Update prediction", async function () {
   let contractOwner: SignerWithAddress
-  let contract: Predictsea
-  let minerNFT: PredictNFT
+  let contract: Tipshot
+  let minerNFT: MinerNFT
   let user1: SignerWithAddress
   let user2: SignerWithAddress
   let miner1: SignerWithAddress
 
   beforeEach(async function () {
-    const Predictsea = await ethers.getContractFactory("Predictsea")
+    const Tipshot = await ethers.getContractFactory("Tipshot")
     ;[contractOwner, user1, user2, miner1] = await ethers.getSigners()
-    contract = await Predictsea.deploy()
+    contract = await Tipshot.deploy()
     await contract.deployed()
 
-    const PredictNFT = await ethers.getContractFactory("PredictNFT")
-    minerNFT = await PredictNFT.deploy()
+    const MinerNFT = await ethers.getContractFactory("MinerNFT")
+    minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
     await minerNFT.deployed()
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
@@ -124,14 +124,11 @@ describe("Update prediction", async function () {
     const _startTime = latestBlock.timestamp + 43200
     const _endTime = _startTime + 86400
 
-    await minerNFT
-      .connect(contractOwner)
-      .setSellingPrice(ethers.utils.parseEther("2.0"))
-    await minerNFT.connect(contractOwner).increaseMintLimit(1)
-    await minerNFT.connect(miner1).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-    await minerNFT.connect(miner1).mintToken("http://ipfs.io/json1")
+    await minerNFT.connect(contractOwner).setCost(ethers.utils.parseEther("2.0"));
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
+    await minerNFT.connect(miner1).mint(miner1.address, {
+      value: ethers.utils.parseEther("2.0")
+    });
     await minerNFT.connect(miner1).approve(contract.address, 1)
 
     await expect(

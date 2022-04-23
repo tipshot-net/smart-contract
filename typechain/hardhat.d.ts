@@ -17,9 +17,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC721__factory>;
     getContractFactory(
+      name: "ERC721Enumerable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC721Enumerable__factory>;
+    getContractFactory(
       name: "ERC721URIStorage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC721URIStorage__factory>;
+    getContractFactory(
+      name: "IERC721Enumerable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC721Enumerable__factory>;
     getContractFactory(
       name: "IERC721Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -41,17 +49,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
+      name: "MinerNFT",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MinerNFT__factory>;
+    getContractFactory(
       name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
     getContractFactory(
-      name: "PredictNFT",
+      name: "Tipshot",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.PredictNFT__factory>;
-    getContractFactory(
-      name: "Predictsea",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Predictsea__factory>;
+    ): Promise<Contracts.Tipshot__factory>;
 
     getContractAt(
       name: "ERC721",
@@ -59,10 +67,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ERC721>;
     getContractAt(
+      name: "ERC721Enumerable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC721Enumerable>;
+    getContractAt(
       name: "ERC721URIStorage",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ERC721URIStorage>;
+    getContractAt(
+      name: "IERC721Enumerable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC721Enumerable>;
     getContractAt(
       name: "IERC721Metadata",
       address: string,
@@ -89,20 +107,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
+      name: "MinerNFT",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MinerNFT>;
+    getContractAt(
       name: "Ownable",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Ownable>;
     getContractAt(
-      name: "PredictNFT",
+      name: "Tipshot",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.PredictNFT>;
-    getContractAt(
-      name: "Predictsea",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Predictsea>;
+    ): Promise<Contracts.Tipshot>;
 
     // default types
     getContractFactory(

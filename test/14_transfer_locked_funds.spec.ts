@@ -2,14 +2,14 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 const { BigNumber } = require("ethers")
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Predictsea, PredictNFT } from "../typechain"
+import { Tipshot, MinerNFT } from "../typechain"
 import state from "./variables"
 
 describe("Transfer locked funds", async function () {
   const zeroAddress = "0x0000000000000000000000000000000000000000"
   let contractOwner: SignerWithAddress
-  let contract: Predictsea
-  let minerNFT: PredictNFT
+  let contract: Tipshot
+  let minerNFT: MinerNFT
   let user1: SignerWithAddress
   let user2: SignerWithAddress
   let buyer1: SignerWithAddress
@@ -29,7 +29,7 @@ describe("Transfer locked funds", async function () {
   
 
   beforeEach(async function () {
-    const Predictsea = await ethers.getContractFactory("Predictsea")
+    const Tipshot = await ethers.getContractFactory("Tipshot")
     ;[
       contractOwner,
       user1,
@@ -51,11 +51,11 @@ describe("Transfer locked funds", async function () {
       
 
     ] = await ethers.getSigners()
-    contract = await Predictsea.deploy()
+    contract = await Tipshot.deploy()
     await contract.deployed()
 
-    const PredictNFT = await ethers.getContractFactory("PredictNFT")
-    minerNFT = await PredictNFT.deploy()
+    const MinerNFT = await ethers.getContractFactory("MinerNFT")
+    minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
     await minerNFT.deployed()
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
@@ -102,58 +102,53 @@ describe("Transfer locked funds", async function () {
         },
       )
 
-    await minerNFT
-      .connect(contractOwner)
-      .setSellingPrice(ethers.utils.parseEther("2.0"))
-    await minerNFT.connect(contractOwner).increaseMintLimit(10)
-    await minerNFT.connect(miner1).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-    await minerNFT.connect(miner2).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-    await minerNFT.connect(miner3).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-    await minerNFT.connect(miner4).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
+      await minerNFT.connect(contractOwner).setCost(ethers.utils.parseEther("2.0"));
+      await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner2.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner3.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner4.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner5.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner6.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner7.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner8.address);
+      await minerNFT.connect(contractOwner).whitelistUser(miner9.address);
+  
+      await minerNFT.connect(miner1).mint(miner1.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner2).mint(miner2.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner3).mint(miner3.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner4).mint(miner4.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner5).mint(miner5.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner6).mint(miner6.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner7).mint(miner7.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+      await minerNFT.connect(miner8).mint(miner8.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
 
-    await minerNFT.connect(miner5).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
+      await minerNFT.connect(miner9).mint(miner9.address, {
+        value: ethers.utils.parseEther("2.0")
+      });
+
     
-    await minerNFT.connect(miner6).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
 
-    await minerNFT.connect(miner7).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
 
-    await minerNFT.connect(miner8).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-
-    await minerNFT.connect(miner9).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-
-    await minerNFT.connect(miner1).mintToken("http://ipfs.io/json1")
-    await minerNFT.connect(miner2).mintToken("http://ipfs.io/json2")
-    await minerNFT.connect(miner3).mintToken("http://ipfs.io/json3")
-    await minerNFT.connect(miner4).mintToken("http://ipfs.io/json4")
-    await minerNFT.connect(miner5).mintToken("http://ipfs.io/json5")
-    await minerNFT.connect(miner6).mintToken("http://ipfs.io/json6")
-    await minerNFT.connect(miner7).mintToken("http://ipfs.io/json7")
-    await minerNFT.connect(miner8).mintToken("http://ipfs.io/json8")
-    await minerNFT.connect(miner9).mintToken("http://ipfs.io/json9")
-
-    await minerNFT.connect(miner1).whitelist({
-      value: ethers.utils.parseEther("2.0"),
-    })
-
-    await minerNFT.connect(miner1).mintToken("http://ipfs.io/json10")
+    await minerNFT.connect(miner1).mint(miner1.address, {
+      value: ethers.utils.parseEther("2.0")
+    });
     
     await minerNFT.connect(miner1).approve(contract.address, 1)
     await minerNFT.connect(miner2).approve(contract.address, 2)

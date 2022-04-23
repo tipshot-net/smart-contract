@@ -33,6 +33,7 @@ contract Ownable {
     _;
   }
 
+
   function lock() external onlyOwner {
     locked = true;
     emit IsLocked(locked);

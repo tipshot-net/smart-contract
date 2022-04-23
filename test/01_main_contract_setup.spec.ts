@@ -1,19 +1,19 @@
 import { expect } from "chai"
 import { ethers } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Predictsea } from "../typechain"
+import { Tipshot, MinerNFT } from "../typechain"
 import state from "./variables"
 
 describe("set up contract", async function () {
   let contractOwner: SignerWithAddress
-  let contract: Predictsea
+  let contract: Tipshot
   let user1: SignerWithAddress
   let user2: SignerWithAddress
 
   beforeEach(async function () {
-    const Predictsea = await ethers.getContractFactory("Predictsea")
+    const Tipshot = await ethers.getContractFactory("Tipshot")
     ;[contractOwner, user1, user2] = await ethers.getSigners()
-    contract = await Predictsea.deploy()
+    contract = await Tipshot.deploy()
     await contract.deployed()
   })
 
@@ -51,19 +51,19 @@ describe("set up contract", async function () {
     })
 
     it("should allow owner set NFT address", async function () {
-      const PredictNFT = await ethers.getContractFactory("PredictNFT")
-      const NFT = await PredictNFT.deploy()
-      await NFT.deployed()
-      await contract.connect(contractOwner).setNftAddress(NFT.address)
-      expect(await contract.NFT_CONTRACT_ADDRESS()).to.equal(NFT.address)
+      const MinerNFT = await ethers.getContractFactory("MinerNFT")
+      const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+      await minerNFT.deployed()
+      await contract.connect(contractOwner).setNftAddress(minerNFT.address)
+      expect(await contract.NFT_CONTRACT_ADDRESS()).to.equal(minerNFT.address)
     })
 
     it("should revert if non owner set NFT address", async function () {
-      const PredictNFT = await ethers.getContractFactory("PredictNFT")
-      const NFT = await PredictNFT.deploy()
-      await NFT.deployed()
+      const MinerNFT = await ethers.getContractFactory("MinerNFT")
+      const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+      await minerNFT.deployed()
       await expect(
-        contract.connect(user1).setNftAddress(NFT.address),
+        contract.connect(user1).setNftAddress(minerNFT.address),
       ).to.be.revertedWith("Unauthorized access")
     })
   })

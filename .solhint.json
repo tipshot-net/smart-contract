@@ -6,6 +6,7 @@
     "var-name-mixedcase": "off",
     "not-rely-on-time": "off",
     "max-states-count": ["warn", 25],
-    "avoid-low-level-calls": "off"
+    "avoid-low-level-calls": "off",
+    "reason-string" : "off"
   }
 }

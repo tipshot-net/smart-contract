@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-/// @title PredictSea {Blockchain powered sport prediction marketplace}
+/// @title Tipshot {Blockchain powered sport prediction marketplace}
 
-contract Predictsea is Ownable, IERC721Receiver {
+contract Tipshot is Ownable, IERC721Receiver {
   using Counters for Counters.Counter;
 
   Counters.Counter private _predictionIds;
@@ -626,12 +626,6 @@ contract Predictsea is Ownable, IERC721Receiver {
 
   function canChargeFee(address _tipster) internal view returns(bool isProfitable) {
     if(User[_tipster].totalPredictions < 10){
-      /*** 
-    |change return value to [false] before deployment.
-    ------------------------------------------------------
-    |cannot be tested on local hardhat network due to current framework limitation
-    |**feature to be tested rigorously with a bot script on testnet
-    */ 
       return false;
     }
     uint16 capitalEmployed = 10000;

@@ -20,38 +20,43 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 import type { TypedEventFilter, TypedEvent, TypedListener } from "./common";
 
-interface PredictNFTInterface extends ethers.utils.Interface {
+interface MinerNFTInterface extends ethers.utils.Interface {
   functions: {
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
-    "balances(address)": FunctionFragment;
-    "canMint(address)": FunctionFragment;
+    "baseExtension()": FunctionFragment;
+    "baseURI()": FunctionFragment;
+    "cost()": FunctionFragment;
     "getApproved(uint256)": FunctionFragment;
-    "increaseMintLimit(uint256)": FunctionFragment;
     "isApprovedForAll(address,address)": FunctionFragment;
     "lock()": FunctionFragment;
     "locked()": FunctionFragment;
-    "managerWithdrawal(address,uint256)": FunctionFragment;
-    "mintLimit()": FunctionFragment;
-    "mintToken(string)": FunctionFragment;
+    "maxSupply()": FunctionFragment;
+    "mint(address)": FunctionFragment;
     "name()": FunctionFragment;
     "nominateNewOwner(address)": FunctionFragment;
     "nominatedOwner()": FunctionFragment;
     "owner()": FunctionFragment;
     "ownerOf(uint256)": FunctionFragment;
+    "removeWhitelistUser(address)": FunctionFragment;
     "safeTransferFrom(address,address,uint256)": FunctionFragment;
-    "sellingPrice()": FunctionFragment;
     "setApprovalForAll(address,bool)": FunctionFragment;
-    "setSellingPrice(uint256)": FunctionFragment;
+    "setBaseExtension(string)": FunctionFragment;
+    "setBaseURI(string)": FunctionFragment;
+    "setCost(uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
+    "tokenByIndex(uint256)": FunctionFragment;
+    "tokenOfOwnerByIndex(address,uint256)": FunctionFragment;
     "tokenURI(uint256)": FunctionFragment;
-    "totalMinted()": FunctionFragment;
+    "totalSupply()": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "transferOwnership()": FunctionFragment;
     "unlock()": FunctionFragment;
-    "whitelist()": FunctionFragment;
-    "withdrawFromBalances(uint256)": FunctionFragment;
+    "walletOfOwner(address)": FunctionFragment;
+    "whitelistUser(address)": FunctionFragment;
+    "whitelisted(address)": FunctionFragment;
+    "withdraw()": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -59,14 +64,14 @@ interface PredictNFTInterface extends ethers.utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
-  encodeFunctionData(functionFragment: "balances", values: [string]): string;
-  encodeFunctionData(functionFragment: "canMint", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "baseExtension",
+    values?: undefined
+  ): string;
+  encodeFunctionData(functionFragment: "baseURI", values?: undefined): string;
+  encodeFunctionData(functionFragment: "cost", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "getApproved",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "increaseMintLimit",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -75,12 +80,8 @@ interface PredictNFTInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "managerWithdrawal",
-    values: [string, BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "mintLimit", values?: undefined): string;
-  encodeFunctionData(functionFragment: "mintToken", values: [string]): string;
+  encodeFunctionData(functionFragment: "maxSupply", values?: undefined): string;
+  encodeFunctionData(functionFragment: "mint", values: [string]): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "nominateNewOwner",
@@ -96,19 +97,24 @@ interface PredictNFTInterface extends ethers.utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "safeTransferFrom",
-    values: [string, string, BigNumberish]
+    functionFragment: "removeWhitelistUser",
+    values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "sellingPrice",
-    values?: undefined
+    functionFragment: "safeTransferFrom",
+    values: [string, string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "setApprovalForAll",
     values: [string, boolean]
   ): string;
   encodeFunctionData(
-    functionFragment: "setSellingPrice",
+    functionFragment: "setBaseExtension",
+    values: [string]
+  ): string;
+  encodeFunctionData(functionFragment: "setBaseURI", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "setCost",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -117,11 +123,19 @@ interface PredictNFTInterface extends ethers.utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "tokenByIndex",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tokenOfOwnerByIndex",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "tokenURI",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "totalMinted",
+    functionFragment: "totalSupply",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -133,22 +147,27 @@ interface PredictNFTInterface extends ethers.utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
-  encodeFunctionData(functionFragment: "whitelist", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "withdrawFromBalances",
-    values: [BigNumberish]
+    functionFragment: "walletOfOwner",
+    values: [string]
   ): string;
+  encodeFunctionData(
+    functionFragment: "whitelistUser",
+    values: [string]
+  ): string;
+  encodeFunctionData(functionFragment: "whitelisted", values: [string]): string;
+  encodeFunctionData(functionFragment: "withdraw", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "balances", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "canMint", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "getApproved",
+    functionFragment: "baseExtension",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "baseURI", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "cost", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "increaseMintLimit",
+    functionFragment: "getApproved",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -157,12 +176,8 @@ interface PredictNFTInterface extends ethers.utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "managerWithdrawal",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "mintLimit", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "mintToken", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "maxSupply", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "nominateNewOwner",
@@ -175,11 +190,11 @@ interface PredictNFTInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "safeTransferFrom",
+    functionFragment: "removeWhitelistUser",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "sellingPrice",
+    functionFragment: "safeTransferFrom",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -187,17 +202,27 @@ interface PredictNFTInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setSellingPrice",
+    functionFragment: "setBaseExtension",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "setBaseURI", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setCost", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "tokenByIndex",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "tokenOfOwnerByIndex",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "tokenURI", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "totalMinted",
+    functionFragment: "totalSupply",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -209,42 +234,36 @@ interface PredictNFTInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "whitelist", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "withdrawFromBalances",
+    functionFragment: "walletOfOwner",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelistUser",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "whitelisted",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 
   events: {
-    "AddressWhitelisted(address)": EventFragment;
     "Approval(address,address,uint256)": EventFragment;
     "ApprovalForAll(address,address,bool)": EventFragment;
     "IsLocked(bool)": EventFragment;
-    "ManagerWithdrawal(address,uint256,uint256)": EventFragment;
-    "MintLimitIncreased(uint256)": EventFragment;
     "NewOwnerNominated(address)": EventFragment;
-    "NewSellingPrice(uint256)": EventFragment;
     "OwnershipTransferred(address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
-    "UserWithdrawal(address,uint256,uint256)": EventFragment;
   };
 
-  getEvent(nameOrSignatureOrTopic: "AddressWhitelisted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ApprovalForAll"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "IsLocked"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "ManagerWithdrawal"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "MintLimitIncreased"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewOwnerNominated"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "NewSellingPrice"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UserWithdrawal"): EventFragment;
 }
-
-export type AddressWhitelistedEvent = TypedEvent<
-  [string] & { whitelistedAddress: string }
->;
 
 export type ApprovalEvent = TypedEvent<
   [string, string, BigNumber] & {
@@ -264,23 +283,7 @@ export type ApprovalForAllEvent = TypedEvent<
 
 export type IsLockedEvent = TypedEvent<[boolean] & { lock_status: boolean }>;
 
-export type ManagerWithdrawalEvent = TypedEvent<
-  [string, BigNumber, BigNumber] & {
-    recipient: string;
-    amount: BigNumber;
-    balance: BigNumber;
-  }
->;
-
-export type MintLimitIncreasedEvent = TypedEvent<
-  [BigNumber] & { newLimit: BigNumber }
->;
-
 export type NewOwnerNominatedEvent = TypedEvent<[string] & { nominee: string }>;
-
-export type NewSellingPriceEvent = TypedEvent<
-  [BigNumber] & { price: BigNumber }
->;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string] & { newOwner: string }
@@ -290,15 +293,7 @@ export type TransferEvent = TypedEvent<
   [string, string, BigNumber] & { from: string; to: string; tokenId: BigNumber }
 >;
 
-export type UserWithdrawalEvent = TypedEvent<
-  [string, BigNumber, BigNumber] & {
-    user: string;
-    amount: BigNumber;
-    balance: BigNumber;
-  }
->;
-
-export class PredictNFT extends BaseContract {
+export class MinerNFT extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -339,7 +334,7 @@ export class PredictNFT extends BaseContract {
     toBlock?: string | number | undefined
   ): Promise<Array<TypedEvent<EventArgsArray & EventArgsObject>>>;
 
-  interface: PredictNFTInterface;
+  interface: MinerNFTInterface;
 
   functions: {
     approve(
@@ -350,19 +345,16 @@ export class PredictNFT extends BaseContract {
 
     balanceOf(owner: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    balances(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+    baseExtension(overrides?: CallOverrides): Promise<[string]>;
 
-    canMint(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+    baseURI(overrides?: CallOverrides): Promise<[string]>;
+
+    cost(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getApproved(
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[string]>;
-
-    increaseMintLimit(
-      _limit: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
 
     isApprovedForAll(
       owner: string,
@@ -376,17 +368,11 @@ export class PredictNFT extends BaseContract {
 
     locked(overrides?: CallOverrides): Promise<[boolean]>;
 
-    managerWithdrawal(
+    maxSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    mint(
       _to: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    mintLimit(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    mintToken(
-      tokenURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     name(overrides?: CallOverrides): Promise<[string]>;
@@ -405,6 +391,11 @@ export class PredictNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    removeWhitelistUser(
+      _user: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     "safeTransferFrom(address,address,uint256)"(
       from: string,
       to: string,
@@ -420,16 +411,24 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    sellingPrice(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     setApprovalForAll(
       operator: string,
       approved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setSellingPrice(
-      _price: BigNumberish,
+    setBaseExtension(
+      _newBaseExtension: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setBaseURI(
+      _newBaseURI: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setCost(
+      _newCost: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -440,12 +439,23 @@ export class PredictNFT extends BaseContract {
 
     symbol(overrides?: CallOverrides): Promise<[string]>;
 
+    tokenByIndex(
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    tokenOfOwnerByIndex(
+      owner: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     tokenURI(
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
-    totalMinted(overrides?: CallOverrides): Promise<[BigNumber]>;
+    totalSupply(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     transferFrom(
       from: string,
@@ -462,13 +472,20 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    whitelist(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    walletOfOwner(
+      _owner: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
+    whitelistUser(
+      _user: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    withdrawFromBalances(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    whitelisted(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+
+    withdraw(
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
 
@@ -480,19 +497,16 @@ export class PredictNFT extends BaseContract {
 
   balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
-  balances(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+  baseExtension(overrides?: CallOverrides): Promise<string>;
 
-  canMint(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+  baseURI(overrides?: CallOverrides): Promise<string>;
+
+  cost(overrides?: CallOverrides): Promise<BigNumber>;
 
   getApproved(
     tokenId: BigNumberish,
     overrides?: CallOverrides
   ): Promise<string>;
-
-  increaseMintLimit(
-    _limit: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
 
   isApprovedForAll(
     owner: string,
@@ -506,17 +520,11 @@ export class PredictNFT extends BaseContract {
 
   locked(overrides?: CallOverrides): Promise<boolean>;
 
-  managerWithdrawal(
+  maxSupply(overrides?: CallOverrides): Promise<BigNumber>;
+
+  mint(
     _to: string,
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  mintLimit(overrides?: CallOverrides): Promise<BigNumber>;
-
-  mintToken(
-    tokenURI: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   name(overrides?: CallOverrides): Promise<string>;
@@ -531,6 +539,11 @@ export class PredictNFT extends BaseContract {
   owner(overrides?: CallOverrides): Promise<string>;
 
   ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+
+  removeWhitelistUser(
+    _user: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   "safeTransferFrom(address,address,uint256)"(
     from: string,
@@ -547,16 +560,24 @@ export class PredictNFT extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  sellingPrice(overrides?: CallOverrides): Promise<BigNumber>;
-
   setApprovalForAll(
     operator: string,
     approved: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setSellingPrice(
-    _price: BigNumberish,
+  setBaseExtension(
+    _newBaseExtension: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setBaseURI(
+    _newBaseURI: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setCost(
+    _newCost: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -567,9 +588,20 @@ export class PredictNFT extends BaseContract {
 
   symbol(overrides?: CallOverrides): Promise<string>;
 
+  tokenByIndex(
+    index: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  tokenOfOwnerByIndex(
+    owner: string,
+    index: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   tokenURI(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
-  totalMinted(overrides?: CallOverrides): Promise<BigNumber>;
+  totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
   transferFrom(
     from: string,
@@ -586,13 +618,20 @@ export class PredictNFT extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  whitelist(
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  walletOfOwner(
+    _owner: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
+  whitelistUser(
+    _user: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  withdrawFromBalances(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
+  whitelisted(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
+  withdraw(
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
@@ -604,19 +643,16 @@ export class PredictNFT extends BaseContract {
 
     balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
-    balances(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+    baseExtension(overrides?: CallOverrides): Promise<string>;
 
-    canMint(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+    baseURI(overrides?: CallOverrides): Promise<string>;
+
+    cost(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<string>;
-
-    increaseMintLimit(
-      _limit: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     isApprovedForAll(
       owner: string,
@@ -628,15 +664,9 @@ export class PredictNFT extends BaseContract {
 
     locked(overrides?: CallOverrides): Promise<boolean>;
 
-    managerWithdrawal(
-      _to: string,
-      _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
+    maxSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
-    mintLimit(overrides?: CallOverrides): Promise<BigNumber>;
-
-    mintToken(tokenURI: string, overrides?: CallOverrides): Promise<BigNumber>;
+    mint(_to: string, overrides?: CallOverrides): Promise<void>;
 
     name(overrides?: CallOverrides): Promise<string>;
 
@@ -650,6 +680,11 @@ export class PredictNFT extends BaseContract {
     owner(overrides?: CallOverrides): Promise<string>;
 
     ownerOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
+
+    removeWhitelistUser(
+      _user: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     "safeTransferFrom(address,address,uint256)"(
       from: string,
@@ -666,18 +701,20 @@ export class PredictNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    sellingPrice(overrides?: CallOverrides): Promise<BigNumber>;
-
     setApprovalForAll(
       operator: string,
       approved: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setSellingPrice(
-      _price: BigNumberish,
+    setBaseExtension(
+      _newBaseExtension: string,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    setBaseURI(_newBaseURI: string, overrides?: CallOverrides): Promise<void>;
+
+    setCost(_newCost: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     supportsInterface(
       interfaceId: BytesLike,
@@ -686,9 +723,20 @@ export class PredictNFT extends BaseContract {
 
     symbol(overrides?: CallOverrides): Promise<string>;
 
+    tokenByIndex(
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    tokenOfOwnerByIndex(
+      owner: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     tokenURI(tokenId: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
-    totalMinted(overrides?: CallOverrides): Promise<BigNumber>;
+    totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     transferFrom(
       from: string,
@@ -701,23 +749,19 @@ export class PredictNFT extends BaseContract {
 
     unlock(overrides?: CallOverrides): Promise<void>;
 
-    whitelist(overrides?: CallOverrides): Promise<void>;
-
-    withdrawFromBalances(
-      _amount: BigNumberish,
+    walletOfOwner(
+      _owner: string,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber[]>;
+
+    whitelistUser(_user: string, overrides?: CallOverrides): Promise<void>;
+
+    whitelisted(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
+    withdraw(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
-    "AddressWhitelisted(address)"(
-      whitelistedAddress?: null
-    ): TypedEventFilter<[string], { whitelistedAddress: string }>;
-
-    AddressWhitelisted(
-      whitelistedAddress?: null
-    ): TypedEventFilter<[string], { whitelistedAddress: string }>;
-
     "Approval(address,address,uint256)"(
       owner?: string | null,
       approved?: string | null,
@@ -762,32 +806,6 @@ export class PredictNFT extends BaseContract {
       lock_status?: null
     ): TypedEventFilter<[boolean], { lock_status: boolean }>;
 
-    "ManagerWithdrawal(address,uint256,uint256)"(
-      recipient?: null,
-      amount?: null,
-      balance?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber],
-      { recipient: string; amount: BigNumber; balance: BigNumber }
-    >;
-
-    ManagerWithdrawal(
-      recipient?: null,
-      amount?: null,
-      balance?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber],
-      { recipient: string; amount: BigNumber; balance: BigNumber }
-    >;
-
-    "MintLimitIncreased(uint256)"(
-      newLimit?: null
-    ): TypedEventFilter<[BigNumber], { newLimit: BigNumber }>;
-
-    MintLimitIncreased(
-      newLimit?: null
-    ): TypedEventFilter<[BigNumber], { newLimit: BigNumber }>;
-
     "NewOwnerNominated(address)"(
       nominee?: null
     ): TypedEventFilter<[string], { nominee: string }>;
@@ -795,14 +813,6 @@ export class PredictNFT extends BaseContract {
     NewOwnerNominated(
       nominee?: null
     ): TypedEventFilter<[string], { nominee: string }>;
-
-    "NewSellingPrice(uint256)"(
-      price?: null
-    ): TypedEventFilter<[BigNumber], { price: BigNumber }>;
-
-    NewSellingPrice(
-      price?: null
-    ): TypedEventFilter<[BigNumber], { price: BigNumber }>;
 
     "OwnershipTransferred(address)"(
       newOwner?: null
@@ -829,24 +839,6 @@ export class PredictNFT extends BaseContract {
       [string, string, BigNumber],
       { from: string; to: string; tokenId: BigNumber }
     >;
-
-    "UserWithdrawal(address,uint256,uint256)"(
-      user?: null,
-      amount?: null,
-      balance?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber],
-      { user: string; amount: BigNumber; balance: BigNumber }
-    >;
-
-    UserWithdrawal(
-      user?: null,
-      amount?: null,
-      balance?: null
-    ): TypedEventFilter<
-      [string, BigNumber, BigNumber],
-      { user: string; amount: BigNumber; balance: BigNumber }
-    >;
   };
 
   estimateGas: {
@@ -858,18 +850,15 @@ export class PredictNFT extends BaseContract {
 
     balanceOf(owner: string, overrides?: CallOverrides): Promise<BigNumber>;
 
-    balances(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+    baseExtension(overrides?: CallOverrides): Promise<BigNumber>;
 
-    canMint(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+    baseURI(overrides?: CallOverrides): Promise<BigNumber>;
+
+    cost(overrides?: CallOverrides): Promise<BigNumber>;
 
     getApproved(
       tokenId: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    increaseMintLimit(
-      _limit: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     isApprovedForAll(
@@ -884,17 +873,11 @@ export class PredictNFT extends BaseContract {
 
     locked(overrides?: CallOverrides): Promise<BigNumber>;
 
-    managerWithdrawal(
+    maxSupply(overrides?: CallOverrides): Promise<BigNumber>;
+
+    mint(
       _to: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    mintLimit(overrides?: CallOverrides): Promise<BigNumber>;
-
-    mintToken(
-      tokenURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
@@ -913,6 +896,11 @@ export class PredictNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    removeWhitelistUser(
+      _user: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     "safeTransferFrom(address,address,uint256)"(
       from: string,
       to: string,
@@ -928,16 +916,24 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    sellingPrice(overrides?: CallOverrides): Promise<BigNumber>;
-
     setApprovalForAll(
       operator: string,
       approved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setSellingPrice(
-      _price: BigNumberish,
+    setBaseExtension(
+      _newBaseExtension: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setBaseURI(
+      _newBaseURI: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setCost(
+      _newCost: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -948,12 +944,23 @@ export class PredictNFT extends BaseContract {
 
     symbol(overrides?: CallOverrides): Promise<BigNumber>;
 
+    tokenByIndex(
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    tokenOfOwnerByIndex(
+      owner: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     tokenURI(
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    totalMinted(overrides?: CallOverrides): Promise<BigNumber>;
+    totalSupply(overrides?: CallOverrides): Promise<BigNumber>;
 
     transferFrom(
       from: string,
@@ -970,13 +977,20 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    whitelist(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    walletOfOwner(
+      _owner: string,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    withdrawFromBalances(
-      _amount: BigNumberish,
+    whitelistUser(
+      _user: string,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    whitelisted(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    withdraw(
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
 
@@ -992,24 +1006,15 @@ export class PredictNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    balances(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
+    baseExtension(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    canMint(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
+    baseURI(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    cost(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getApproved(
       tokenId: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    increaseMintLimit(
-      _limit: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     isApprovedForAll(
@@ -1024,17 +1029,11 @@ export class PredictNFT extends BaseContract {
 
     locked(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    managerWithdrawal(
+    maxSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    mint(
       _to: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    mintLimit(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    mintToken(
-      tokenURI: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -1053,6 +1052,11 @@ export class PredictNFT extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    removeWhitelistUser(
+      _user: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     "safeTransferFrom(address,address,uint256)"(
       from: string,
       to: string,
@@ -1068,16 +1072,24 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    sellingPrice(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     setApprovalForAll(
       operator: string,
       approved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setSellingPrice(
-      _price: BigNumberish,
+    setBaseExtension(
+      _newBaseExtension: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setBaseURI(
+      _newBaseURI: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setCost(
+      _newCost: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -1088,12 +1100,23 @@ export class PredictNFT extends BaseContract {
 
     symbol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    tokenByIndex(
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    tokenOfOwnerByIndex(
+      owner: string,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     tokenURI(
       tokenId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    totalMinted(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    totalSupply(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     transferFrom(
       from: string,
@@ -1110,13 +1133,23 @@ export class PredictNFT extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    whitelist(
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    walletOfOwner(
+      _owner: string,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    withdrawFromBalances(
-      _amount: BigNumberish,
+    whitelistUser(
+      _user: string,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    whitelisted(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    withdraw(
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
 }

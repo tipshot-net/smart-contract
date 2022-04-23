@@ -20,7 +20,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 import type { TypedEventFilter, TypedEvent, TypedListener } from "./common";
 
-interface PredictseaInterface extends ethers.utils.Interface {
+interface TipshotInterface extends ethers.utils.Interface {
   functions: {
     "Balances(address)": FunctionFragment;
     "BoughtPredictions(address,uint256)": FunctionFragment;
@@ -613,7 +613,7 @@ export type WithdrawalEvent = TypedEvent<
   }
 >;
 
-export class Predictsea extends BaseContract {
+export class Tipshot extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -654,7 +654,7 @@ export class Predictsea extends BaseContract {
     toBlock?: string | number | undefined
   ): Promise<Array<TypedEvent<EventArgsArray & EventArgsObject>>>;
 
-  interface: PredictseaInterface;
+  interface: TipshotInterface;
 
   functions: {
     Balances(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
