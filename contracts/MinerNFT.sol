@@ -34,14 +34,13 @@ contract MinerNFT is ERC721Enumerable, Ownable {
     require(!locked, "MinerNFT: Contract in locked state");
     require(supply < maxSupply, "MinerNFT: Max supply reached");
 
-    if(msg.sender != owner){
-      require(whitelisted[msg.sender], "MinerNFT: Not whitelisted");  
-      require(msg.value == cost, "ETH sent must be exactly selling fee"); 
+    if (msg.sender != owner) {
+      require(whitelisted[msg.sender], "MinerNFT: Not whitelisted");
+      require(msg.value == cost, "ETH sent must be exactly selling fee");
     }
 
-      _safeMint(_to, supply + 1);
-      whitelisted[msg.sender] = false;
-    
+    _safeMint(_to, supply + 1);
+    whitelisted[msg.sender] = false;
   }
 
   function walletOfOwner(address _owner)
@@ -70,8 +69,11 @@ contract MinerNFT is ERC721Enumerable, Ownable {
     );
 
     string memory currentBaseURI = _baseURI();
-    return bytes(currentBaseURI).length > 0
-        ? string(abi.encodePacked(currentBaseURI, tokenId.toString(), baseExtension))
+    return
+      bytes(currentBaseURI).length > 0
+        ? string(
+          abi.encodePacked(currentBaseURI, tokenId.toString(), baseExtension)
+        )
         : "";
   }
 
@@ -88,11 +90,10 @@ contract MinerNFT is ERC721Enumerable, Ownable {
     baseExtension = _newBaseExtension;
   }
 
- 
- function whitelistUser(address _user) public onlyOwner {
+  function whitelistUser(address _user) public onlyOwner {
     whitelisted[_user] = true;
   }
- 
+
   function removeWhitelistUser(address _user) public onlyOwner {
     whitelisted[_user] = false;
   }

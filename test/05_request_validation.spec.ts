@@ -35,7 +35,11 @@ describe("Request validation", async function () {
     await contract.deployed()
 
     const MinerNFT = await ethers.getContractFactory("MinerNFT")
-    minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+    minerNFT = await MinerNFT.deploy(
+      "Tipshot-Miner",
+      "TMT",
+      "https://ipfs.io/kdkij99u9nsk/",
+    )
     await minerNFT.deployed()
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
@@ -46,7 +50,7 @@ describe("Request validation", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
-      await contract.connect(contractOwner).setFreeTipsQuota(100)
+    await contract.connect(contractOwner).setFreeTipsQuota(100)
 
     const latestBlock = await ethers.provider.getBlock("latest")
     const _startTime = latestBlock.timestamp + 43200
@@ -80,15 +84,17 @@ describe("Request validation", async function () {
         },
       )
 
-    await minerNFT.connect(contractOwner).setCost(ethers.utils.parseEther("2.0"));
-    await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
-    await minerNFT.connect(contractOwner).whitelistUser(miner2.address);
+    await minerNFT
+      .connect(contractOwner)
+      .setCost(ethers.utils.parseEther("2.0"))
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner2.address)
     await minerNFT.connect(miner1).mint(miner1.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner2).mint(miner2.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner1).approve(contract.address, 1)
     await minerNFT.connect(miner2).approve(contract.address, 2)
   })
@@ -275,23 +281,23 @@ describe("Request validation", async function () {
 
   it("moves to the next prediction after max validators attained", async function () {
     await ethers.provider.send("evm_increaseTime", [14400])
-    await minerNFT.connect(contractOwner).whitelistUser(miner3.address);
-    await minerNFT.connect(contractOwner).whitelistUser(miner4.address);
-    await minerNFT.connect(contractOwner).whitelistUser(miner5.address);
-    await minerNFT.connect(contractOwner).whitelistUser(miner6.address);
+    await minerNFT.connect(contractOwner).whitelistUser(miner3.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner4.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner5.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner6.address)
 
     await minerNFT.connect(miner3).mint(miner3.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner4).mint(miner4.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner5).mint(miner5.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner6).mint(miner6.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
+      value: ethers.utils.parseEther("2.0"),
+    })
 
     await minerNFT.connect(miner3).approve(contract.address, 3)
     await minerNFT.connect(miner4).approve(contract.address, 4)

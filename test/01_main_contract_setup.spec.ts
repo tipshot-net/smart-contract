@@ -52,7 +52,11 @@ describe("set up contract", async function () {
 
     it("should allow owner set NFT address", async function () {
       const MinerNFT = await ethers.getContractFactory("MinerNFT")
-      const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+      const minerNFT = await MinerNFT.deploy(
+        "Tipshot-Miner",
+        "TMT",
+        "https://ipfs.io/kdkij99u9nsk/",
+      )
       await minerNFT.deployed()
       await contract.connect(contractOwner).setNftAddress(minerNFT.address)
       expect(await contract.NFT_CONTRACT_ADDRESS()).to.equal(minerNFT.address)
@@ -60,7 +64,11 @@ describe("set up contract", async function () {
 
     it("should revert if non owner set NFT address", async function () {
       const MinerNFT = await ethers.getContractFactory("MinerNFT")
-      const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+      const minerNFT = await MinerNFT.deploy(
+        "Tipshot-Miner",
+        "TMT",
+        "https://ipfs.io/kdkij99u9nsk/",
+      )
       await minerNFT.deployed()
       await expect(
         contract.connect(user1).setNftAddress(minerNFT.address),
@@ -96,15 +104,15 @@ describe("set up contract", async function () {
     })
 
     it("updates user's profile", async function () {
-      expect((await contract.User(user1.address)).profile).to.equal("");
-      expect((await contract.User(user1.address)).key).to.equal("");
+      expect((await contract.User(user1.address)).profile).to.equal("")
+      expect((await contract.User(user1.address)).key).to.equal("")
 
-      await contract.connect(user1).addProfile("myprofiledata", "mykey");
+      await contract.connect(user1).addProfile("myprofiledata", "mykey")
 
-      expect((await contract.User(user1.address)).profile).to.equal("myprofiledata");
-      expect((await contract.User(user1.address)).key).to.equal("mykey");
+      expect((await contract.User(user1.address)).profile).to.equal(
+        "myprofiledata",
+      )
+      expect((await contract.User(user1.address)).key).to.equal("mykey")
     })
   })
-
-
 })

@@ -20,7 +20,11 @@ describe("Update prediction", async function () {
     await contract.deployed()
 
     const MinerNFT = await ethers.getContractFactory("MinerNFT")
-    minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+    minerNFT = await MinerNFT.deploy(
+      "Tipshot-Miner",
+      "TMT",
+      "https://ipfs.io/kdkij99u9nsk/",
+    )
     await minerNFT.deployed()
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
@@ -31,9 +35,8 @@ describe("Update prediction", async function () {
         state.minerStakingFee,
         state.minerPercentage,
       )
-    
+
     await contract.connect(contractOwner).setFreeTipsQuota(100)
-    
   })
 
   it("allows seller to update prediction data", async function () {
@@ -124,11 +127,13 @@ describe("Update prediction", async function () {
     const _startTime = latestBlock.timestamp + 43200
     const _endTime = _startTime + 86400
 
-    await minerNFT.connect(contractOwner).setCost(ethers.utils.parseEther("2.0"));
-    await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
+    await minerNFT
+      .connect(contractOwner)
+      .setCost(ethers.utils.parseEther("2.0"))
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address)
     await minerNFT.connect(miner1).mint(miner1.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
+      value: ethers.utils.parseEther("2.0"),
+    })
     await minerNFT.connect(miner1).approve(contract.address, 1)
 
     await expect(

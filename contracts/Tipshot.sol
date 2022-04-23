@@ -15,7 +15,7 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   uint256 private pointer;
 
-    // ========== STATE VARIABLES ========== //
+  // ========== STATE VARIABLES ========== //
 
   ///@notice maps the generated id to the prediction data
   mapping(uint256 => PredictionData) public Predictions;
@@ -54,7 +54,7 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   mapping(address => Profile) public User;
 
-  mapping(address => uint256[]) public dummyList; 
+  mapping(address => uint256[]) public dummyList;
 
   mapping(address => ValidationData[]) public dummyValidations;
 
@@ -152,9 +152,6 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   uint8 public usedFreeQuota;
 
- 
-
-  
   /*╔═════════════════════════════╗
     ║           EVENTS            ║
     ╚═════════════════════════════╝*/
@@ -233,7 +230,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║            EVENTS           ║
     ╚═════════════════════════════╝*/
 
-   /**********************************/
+  /**********************************/
   /*╔═════════════════════════════╗
     ║          MODIFIERS          ║
     ╚═════════════════════════════╝*/
@@ -248,10 +245,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     _;
   }
 
-  modifier tipsMeetsTimeRequirements(
-    uint256 _startTime,
-    uint256 _endTime
-  ) {
+  modifier tipsMeetsTimeRequirements(uint256 _startTime, uint256 _endTime) {
     require(
       _isValidTiming(_startTime, _endTime),
       "Doesn't meet time requirements"
@@ -339,28 +333,29 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   //internal functions
 
-
   function purchasedPredictionsCleanup() internal {
-    if(BoughtPredictions[msg.sender].length == 0){
+    if (BoughtPredictions[msg.sender].length == 0) {
       return;
     }
-    for (uint256 index = 0; index < BoughtPredictions[msg.sender].length; index++) {
+    for (
+      uint256 index = 0;
+      index < BoughtPredictions[msg.sender].length;
+      index++
+    ) {
       uint256 _id = BoughtPredictions[msg.sender][index];
 
-      if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Negative))
-      {
-        if(Purchases[msg.sender][_id].refunded == false){
+      if (
+        (Predictions[_id].winningClosingVote == ValidationStatus.Neutral) ||
+        (Predictions[_id].winningClosingVote == ValidationStatus.Negative)
+      ) {
+        if (Purchases[msg.sender][_id].refunded == false) {
           dummyList[msg.sender].push(_id);
         }
-                   
       }
-
     }
     BoughtPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
   }
-
-
 
   function _assignPredictionToMiner(uint256 _tokenId, string memory _key)
     internal
@@ -473,7 +468,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     User[tipster].spot += 1;
   }
 
-
   function removeFromActivePool(uint256 _id) internal {
     uint256 _index = Index[_id];
     activePool[_index] = activePool[activePool.length - 1];
@@ -539,10 +533,13 @@ contract Tipshot is Ownable, IERC721Receiver {
     notZeroAddress(_user)
   {
     LockedFunds[_user].amount += _amount;
-    
-    if(LockedFunds[_user].lastPushDate == 0){
-      LockedFunds[_user].releaseDate = add(block.timestamp, mul(mul(24, HOURS), 30));
-    }else{
+
+    if (LockedFunds[_user].lastPushDate == 0) {
+      LockedFunds[_user].releaseDate = add(
+        block.timestamp,
+        mul(mul(24, HOURS), 30)
+      );
+    } else {
       LockedFunds[_user].releaseDate += mul(mul(24, HOURS), 30);
     }
     LockedFunds[_user].lastPushDate = block.timestamp;
@@ -550,23 +547,23 @@ contract Tipshot is Ownable, IERC721Receiver {
   }
 
   function ownedValidationsCleanup() internal {
-    if(OwnedValidations[msg.sender].length == 0){
+    if (OwnedValidations[msg.sender].length == 0) {
       return;
     }
-    for (uint256 index = 0; index < OwnedValidations[msg.sender].length; index++) {
+    for (
+      uint256 index = 0;
+      index < OwnedValidations[msg.sender].length;
+      index++
+    ) {
       ValidationData memory _validation = OwnedValidations[msg.sender][index];
 
-      if(Validations[_validation.tokenId][_validation.id].settled == false){
-        
-          dummyValidations[msg.sender].push(_validation);
-             
+      if (Validations[_validation.tokenId][_validation.id].settled == false) {
+        dummyValidations[msg.sender].push(_validation);
       }
     }
     OwnedValidations[msg.sender] = dummyValidations[msg.sender];
     delete dummyValidations[msg.sender];
   }
-
-
 
   function _setupPrediction(
     uint256 _id,
@@ -576,11 +573,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
-  )
-    internal
-    tipsMeetsTimeRequirements(_startTime, _endTime)
-  {
-   
+  ) internal tipsMeetsTimeRequirements(_startTime, _endTime) {
     Predictions[_id].seller = msg.sender;
     Predictions[_id].ipfsHash = _ipfsHash;
     Predictions[_id].key = _key;
@@ -588,62 +581,71 @@ contract Tipshot is Ownable, IERC721Receiver {
     Predictions[_id].startTime = _startTime;
     Predictions[_id].endTime = _endTime;
     Predictions[_id].odd = _odd;
-    
-    if(canChargeFee(msg.sender)){
+
+    if (canChargeFee(msg.sender)) {
       Predictions[_id].price = _price;
-    }else{
+    } else {
       Predictions[_id].price = 0;
     }
 
-    if(Predictions[_id].price == 0){
+    if (Predictions[_id].price == 0) {
       require(usedFreeQuota < freeTipsQuota, "Free quota used up!");
     }
-    
-
   }
 
-
   function ownedPredictionsCleanup() internal {
-    if(OwnedPredictions[msg.sender].length == 0){
+    if (OwnedPredictions[msg.sender].length == 0) {
       return;
     }
-    for (uint256 index = 0; index < OwnedPredictions[msg.sender].length; index++) {
+    for (
+      uint256 index = 0;
+      index < OwnedPredictions[msg.sender].length;
+      index++
+    ) {
       uint256 _id = OwnedPredictions[msg.sender][index];
-      if(Predictions[_id].state == State.Withdrawn || Predictions[_id].state == State.Rejected){
+      if (
+        Predictions[_id].state == State.Withdrawn ||
+        Predictions[_id].state == State.Rejected
+      ) {
         continue;
       }
-      if((Predictions[_id].winningClosingVote == ValidationStatus.Neutral) || (Predictions[_id].winningClosingVote == ValidationStatus.Positive))
-      {
-        if(Predictions[_id].withdrawnEarnings == false){
+      if (
+        (Predictions[_id].winningClosingVote == ValidationStatus.Neutral) ||
+        (Predictions[_id].winningClosingVote == ValidationStatus.Positive)
+      ) {
+        if (Predictions[_id].withdrawnEarnings == false) {
           dummyList[msg.sender].push(_id);
         }
-                   
       }
     }
     OwnedPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
   }
 
-  function canChargeFee(address _tipster) internal view returns(bool isProfitable) {
-    if(User[_tipster].totalPredictions < 10){
+  function canChargeFee(address _tipster)
+    internal
+    view
+    returns (bool isProfitable)
+  {
+    if (User[_tipster].totalPredictions < 10) {
       return false;
     }
     uint16 capitalEmployed = 10000;
     uint256 earned = 0;
-    for(uint256 index = 0; index < User[_tipster].recentTips.length; index++) {
-      if(Predictions[User[_tipster].recentTips[index]].winningClosingVote == ValidationStatus.Positive){
-         earned += mul(Predictions[User[_tipster].recentTips[index]].odd, 10); 
-      }    
+    for (uint256 index = 0; index < User[_tipster].recentTips.length; index++) {
+      if (
+        Predictions[User[_tipster].recentTips[index]].winningClosingVote ==
+        ValidationStatus.Positive
+      ) {
+        earned += mul(Predictions[User[_tipster].recentTips[index]].odd, 10);
+      }
     }
-    if(earned > capitalEmployed){
+    if (earned > capitalEmployed) {
       return true;
     }
-    
+
     return false;
   }
-
-
-  
 
   ///@dev Set all variables in one function to reduce contract size
   ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
@@ -691,7 +693,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
-  ) external payable  {
+  ) external payable {
     require(_odd > 100, "Odd must be greater than 1");
     if (msg.value < miningFee) {
       require(
@@ -708,14 +710,13 @@ contract Tipshot is Ownable, IERC721Receiver {
 
     _predictionIds.increment();
     uint256 _id = _predictionIds.current();
-    
+
     _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
     miningPool.push(_id);
 
     ownedPredictionsCleanup();
     OwnedPredictions[msg.sender].push(_id);
-    
 
     emit PredictionCreated(msg.sender, _id, _ipfsHash, _key);
   }
@@ -747,7 +748,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
-  ) external  onlySeller(_id) notMined(_id) {
+  ) external onlySeller(_id) notMined(_id) {
     _setupPrediction(_id, _ipfsHash, _key, _startTime, _endTime, _odd, _price);
 
     emit PredictionUpdated(msg.sender, _id, _ipfsHash, _key);
@@ -760,7 +761,6 @@ contract Tipshot is Ownable, IERC721Receiver {
   function requestValidation(uint256 _tokenId, string memory _key)
     external
     payable
-    
   {
     if (msg.value < minerStakingFee) {
       require(
@@ -776,7 +776,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     }
 
     require(miningPool.length > 0, "mining pool empty");
-     ownedValidationsCleanup();
+    ownedValidationsCleanup();
     _transferNftToContract(_tokenId);
     uint256 _id = _assignPredictionToMiner(_tokenId, _key);
     emit ValidationAssigned(msg.sender, _id, _tokenId);
@@ -814,7 +814,7 @@ contract Tipshot is Ownable, IERC721Receiver {
       //prediction receives 60% positive validations
       Predictions[_id].state = State.Active;
       addToActivePool(_id);
-      if(Predictions[_id].price == 0){
+      if (Predictions[_id].price == 0) {
         usedFreeQuota += 1;
       }
     }
@@ -908,7 +908,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     external
     assignedToMiner(_id, _tokenId)
     isNftOwner(_tokenId)
-    
   {
     require(
       Predictions[_id].state == State.Rejected,
@@ -924,11 +923,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
 
-  
-
-
   function settleMiner(uint256 _id, uint256 _tokenId) external {
-    require(Predictions[_id].state == State.Active || Predictions[_id].state == State.Concluded, "Not an active prediction");
+    require(
+      Predictions[_id].state == State.Active ||
+        Predictions[_id].state == State.Concluded,
+      "Not an active prediction"
+    );
     require(Validations[_tokenId][_id].miner == msg.sender, "Not miner");
     require(
       Validations[_tokenId][_id].settled == false,
@@ -940,16 +940,16 @@ contract Tipshot is Ownable, IERC721Receiver {
     );
     if (Predictions[_id].state == State.Active) {
       Predictions[_id].state = State.Concluded;
-      if(Predictions[_id].price == 0){
+      if (Predictions[_id].price == 0) {
         usedFreeQuota -= 1;
       }
       Predictions[_id].winningOpeningVote = _getWinningOpeningVote(_id);
       Predictions[_id].winningClosingVote = _getWinningClosingVote(_id);
-      if(Predictions[_id].winningClosingVote == ValidationStatus.Positive){
-          User[Predictions[_id].seller].wonCount += 1;
-        }else{
-           User[Predictions[_id].seller].lostCount += 1;
-       }
+      if (Predictions[_id].winningClosingVote == ValidationStatus.Positive) {
+        User[Predictions[_id].seller].wonCount += 1;
+      } else {
+        User[Predictions[_id].seller].lostCount += 1;
+      }
       User[Predictions[_id].seller].totalPredictions += 1;
       addToRecentPredictionsList(Predictions[_id].seller, _id);
       removeFromActivePool(_id);
@@ -962,7 +962,6 @@ contract Tipshot is Ownable, IERC721Receiver {
           PredictionStats[_id].buyCount *
           minerPercentage) /
         100;
-      
     }
 
     Balances[Validations[_tokenId][_id].miner] += _minerEarnings;
@@ -998,24 +997,23 @@ contract Tipshot is Ownable, IERC721Receiver {
     );
     require(Predictions[_id].withdrawnEarnings == false, "Earnings withdrawn");
 
-    require(Predictions[_id].winningClosingVote == ValidationStatus.Positive, "Prediction lost!");
+    require(
+      Predictions[_id].winningClosingVote == ValidationStatus.Positive,
+      "Prediction lost!"
+    );
 
-     
-      uint256 _minerEarnings = (Predictions[_id].price *
-        PredictionStats[_id].buyCount *
-        minerPercentage) / 100;
-      uint256 _totalMinersRewards = _minerEarnings *
-        PredictionStats[_id].validatorCount;
-      uint256 _sellerEarnings =
-        (Predictions[_id].price * PredictionStats[_id].buyCount) -
-        _totalMinersRewards;
-   
+    uint256 _minerEarnings = (Predictions[_id].price *
+      PredictionStats[_id].buyCount *
+      minerPercentage) / 100;
+    uint256 _totalMinersRewards = _minerEarnings *
+      PredictionStats[_id].validatorCount;
+    uint256 _sellerEarnings = (Predictions[_id].price *
+      PredictionStats[_id].buyCount) - _totalMinersRewards;
+
     Predictions[_id].withdrawnEarnings = true;
     Balances[Predictions[_id].seller] += _sellerEarnings;
     emit SellerSettled(msg.sender, _id, _sellerEarnings);
   }
-
-  
 
   ///@dev Withdraw funds from the contract
   ///@param _amount Amount to be withdrawn
@@ -1070,12 +1068,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     Balances[msg.sender] += msg.value;
   }
 
-
-
-
-
-
-
   function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
     require(c >= a, "SafeMath: addition overflow");
@@ -1119,16 +1111,16 @@ contract Tipshot is Ownable, IERC721Receiver {
   /// @param _endTime Timestamp of the proposed end of the last prediction event
   ///@return bool
 
-  function _isValidTiming(
-    uint256 _startTime,
-    uint256 _endTime
-  ) internal view returns (bool) {
+  function _isValidTiming(uint256 _startTime, uint256 _endTime)
+    internal
+    view
+    returns (bool)
+  {
     require(_endTime > _startTime, "End time less than start time");
     if (
       add(block.timestamp, mul(8, HOURS)) > _startTime ||
       _startTime > add(block.timestamp, mul(24, HOURS)) ||
       sub(_endTime, _startTime) > mul(24, HOURS)
-      
     ) {
       return false;
     }
@@ -1168,9 +1160,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     return BoughtPredictions[buyer].length;
   }
 
-  function getRecentPrediction(address seller, uint8 index) public view returns(uint256) {
+  function getRecentPrediction(address seller, uint8 index)
+    public
+    view
+    returns (uint256)
+  {
     return User[seller].recentTips[index];
   }
-
-
 }

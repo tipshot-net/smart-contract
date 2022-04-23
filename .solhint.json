@@ -7,6 +7,6 @@
     "not-rely-on-time": "off",
     "max-states-count": ["warn", 25],
     "avoid-low-level-calls": "off",
-    "reason-string" : "off"
+    "reason-string": "off"
   }
 }

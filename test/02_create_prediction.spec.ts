@@ -17,10 +17,12 @@ describe("Create prediction", async function () {
     contract = await Tipshot.deploy()
     await contract.deployed()
 
-    
-
     const MinerNFT = await ethers.getContractFactory("MinerNFT")
-    const minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+    const minerNFT = await MinerNFT.deploy(
+      "Tipshot-Miner",
+      "TMT",
+      "https://ipfs.io/kdkij99u9nsk/",
+    )
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
     await contract
@@ -32,7 +34,6 @@ describe("Create prediction", async function () {
       )
     await contract.connect(contractOwner).setFreeTipsQuota(100)
   })
-    
 
   describe("seller creates prediction", async function () {
     it("sets all prediction data", async function () {
@@ -95,7 +96,6 @@ describe("Create prediction", async function () {
       ).to.be.revertedWith("Doesn't meet time requirements")
     })
 
-    
     it("should revert if end time is less than start time", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")
       const _startTime = latestBlock.timestamp + 43200
@@ -162,7 +162,7 @@ describe("Create prediction", async function () {
     })
 
     //odds consideration
-    
+
     it("should revert if odd is less that or equal to 1", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")
       const _startTime = latestBlock.timestamp + 43200
@@ -183,7 +183,6 @@ describe("Create prediction", async function () {
           ),
       ).to.be.revertedWith("Odd must be greater than 1")
     })
-
 
     it("reverts if sent eth is less than (miningFee + sellerStakingFee)", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")

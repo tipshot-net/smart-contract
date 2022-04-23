@@ -26,7 +26,6 @@ describe("Transfer locked funds", async function () {
   let miner7: SignerWithAddress
   let miner8: SignerWithAddress
   let miner9: SignerWithAddress
-  
 
   beforeEach(async function () {
     const Tipshot = await ethers.getContractFactory("Tipshot")
@@ -47,15 +46,17 @@ describe("Transfer locked funds", async function () {
       miner6,
       miner7,
       miner8,
-      miner9
-      
-
+      miner9,
     ] = await ethers.getSigners()
     contract = await Tipshot.deploy()
     await contract.deployed()
 
     const MinerNFT = await ethers.getContractFactory("MinerNFT")
-    minerNFT = await MinerNFT.deploy("Tipshot-Miner", "TMT", "https://ipfs.io/kdkij99u9nsk/")
+    minerNFT = await MinerNFT.deploy(
+      "Tipshot-Miner",
+      "TMT",
+      "https://ipfs.io/kdkij99u9nsk/",
+    )
     await minerNFT.deployed()
     await contract.connect(contractOwner).setNftAddress(minerNFT.address)
 
@@ -86,9 +87,7 @@ describe("Transfer locked funds", async function () {
         },
       )
 
-      
-
-      await contract
+    await contract
       .connect(user2)
       .createPrediction(
         "hellothere123",
@@ -102,54 +101,54 @@ describe("Transfer locked funds", async function () {
         },
       )
 
-      await minerNFT.connect(contractOwner).setCost(ethers.utils.parseEther("2.0"));
-      await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner2.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner3.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner4.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner5.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner6.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner7.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner8.address);
-      await minerNFT.connect(contractOwner).whitelistUser(miner9.address);
-  
-      await minerNFT.connect(miner1).mint(miner1.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner2).mint(miner2.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner3).mint(miner3.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner4).mint(miner4.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner5).mint(miner5.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner6).mint(miner6.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner7).mint(miner7.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-      await minerNFT.connect(miner8).mint(miner8.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-
-      await minerNFT.connect(miner9).mint(miner9.address, {
-        value: ethers.utils.parseEther("2.0")
-      });
-
-    
-
-    await minerNFT.connect(contractOwner).whitelistUser(miner1.address);
+    await minerNFT
+      .connect(contractOwner)
+      .setCost(ethers.utils.parseEther("2.0"))
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner2.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner3.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner4.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner5.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner6.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner7.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner8.address)
+    await minerNFT.connect(contractOwner).whitelistUser(miner9.address)
 
     await minerNFT.connect(miner1).mint(miner1.address, {
-      value: ethers.utils.parseEther("2.0")
-    });
-    
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner2).mint(miner2.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner3).mint(miner3.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner4).mint(miner4.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner5).mint(miner5.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner6).mint(miner6.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner7).mint(miner7.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+    await minerNFT.connect(miner8).mint(miner8.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+
+    await minerNFT.connect(miner9).mint(miner9.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+
+    await minerNFT.connect(contractOwner).whitelistUser(miner1.address)
+
+    await minerNFT.connect(miner1).mint(miner1.address, {
+      value: ethers.utils.parseEther("2.0"),
+    })
+
     await minerNFT.connect(miner1).approve(contract.address, 1)
     await minerNFT.connect(miner2).approve(contract.address, 2)
     await minerNFT.connect(miner3).approve(contract.address, 3)
@@ -160,7 +159,6 @@ describe("Transfer locked funds", async function () {
     await minerNFT.connect(miner8).approve(contract.address, 8)
     await minerNFT.connect(miner9).approve(contract.address, 9)
     await minerNFT.connect(miner1).approve(contract.address, 10)
-    
 
     await ethers.provider.send("evm_increaseTime", [14400])
     await contract.connect(miner1).requestValidation(
@@ -243,7 +241,6 @@ describe("Transfer locked funds", async function () {
       },
     )
 
-    
     await contract.connect(miner1).submitOpeningVote(1, 1, 1)
 
     await contract.connect(miner2).submitOpeningVote(1, 2, 1)
@@ -260,39 +257,36 @@ describe("Transfer locked funds", async function () {
     await contract.connect(miner9).submitOpeningVote(2, 9, 1)
     await contract.connect(miner1).submitOpeningVote(2, 10, 1)
 
-  
-
     await contract.connect(buyer1).purchasePrediction(1, "buyerkey1", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer2).purchasePrediction(1, "buyerkey2", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer3).purchasePrediction(1, "buyerkey3", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer4).purchasePrediction(1, "buyerkey4", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer5).purchasePrediction(1, "buyerkey5", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
-
 
     await contract.connect(buyer1).purchasePrediction(2, "buyerkey1", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer2).purchasePrediction(2, "buyerkey2", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer3).purchasePrediction(2, "buyerkey3", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer4).purchasePrediction(2, "buyerkey4", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
     await contract.connect(buyer5).purchasePrediction(2, "buyerkey5", {
-      value: ethers.utils.parseEther("10.0")
+      value: ethers.utils.parseEther("10.0"),
     })
 
     await ethers.provider.send("evm_increaseTime", [136000])
@@ -307,7 +301,6 @@ describe("Transfer locked funds", async function () {
 
     await contract.connect(miner5).submitClosingVote(1, 5, 2)
 
-
     await contract.connect(miner6).submitClosingVote(2, 6, 2)
 
     await contract.connect(miner7).submitClosingVote(2, 7, 2)
@@ -320,48 +313,53 @@ describe("Transfer locked funds", async function () {
 
     await ethers.provider.send("evm_increaseTime", [18000])
 
-    await contract.connect(miner1).settleMiner(1, 1);
+    await contract.connect(miner1).settleMiner(1, 1)
 
-    await contract.connect(miner4).settleMiner(1, 4);
-
-
+    await contract.connect(miner4).settleMiner(1, 4)
   })
 
   it("it locks miner's funds if miners vote isn't in agreement with majority", async function () {
-
     let miningFeeShare = (await contract.miningFee()).div(state.MAX_VALIDATORS)
 
-    expect(await contract.Balances(miner1.address)).to.equal(miningFeeShare.mul(2));
+    expect(await contract.Balances(miner1.address)).to.equal(
+      miningFeeShare.mul(2),
+    )
 
-    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(state.minerStakingFee);
+    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(
+      state.minerStakingFee,
+    )
 
-    expect((await contract.LockedFunds(miner1.address)).totalInstances).to.equal(1)
+    expect(
+      (await contract.LockedFunds(miner1.address)).totalInstances,
+    ).to.equal(1)
 
     const currently = (await ethers.provider.getBlock("latest")).timestamp
 
-    expect((await contract.LockedFunds(miner1.address)).lastPushDate).to.be.closeTo(BigNumber.from(currently), BigNumber.from(5));
+    expect(
+      (await contract.LockedFunds(miner1.address)).lastPushDate,
+    ).to.be.closeTo(BigNumber.from(currently), BigNumber.from(5))
 
+    expect(
+      (await contract.LockedFunds(miner1.address)).releaseDate.sub(currently),
+    ).to.be.closeTo(BigNumber.from(2592000), BigNumber.from(5))
 
-    expect((await contract.LockedFunds(miner1.address)).releaseDate.sub(currently)).to.be.closeTo(BigNumber.from(2592000), BigNumber.from(5));
-
-    await expect(contract.connect(miner1).transferLockedFunds(state.minerStakingFee)).to.be.revertedWith("Assets still frozen")
-
-
+    await expect(
+      contract.connect(miner1).transferLockedFunds(state.minerStakingFee),
+    ).to.be.revertedWith("Assets still frozen")
   })
 
   it("transfers funds to main balance after release date", async function () {
-
     await ethers.provider.send("evm_increaseTime", [2592000])
 
     let miningFeeShare = (await contract.miningFee()).div(state.MAX_VALIDATORS)
 
     await contract.connect(miner1).transferLockedFunds(state.minerStakingFee)
 
-    expect(await contract.Balances(miner1.address)).to.equal(miningFeeShare.mul(2).add(state.minerStakingFee))
+    expect(await contract.Balances(miner1.address)).to.equal(
+      miningFeeShare.mul(2).add(state.minerStakingFee),
+    )
 
-    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(0);
-
-    
+    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(0)
   })
 
   it("reverts if amount to be transfered greater than locked amount", async function () {
@@ -369,33 +367,46 @@ describe("Transfer locked funds", async function () {
 
     let miningFeeShare = (await contract.miningFee()).div(state.MAX_VALIDATORS)
 
-    await expect(contract.connect(miner1).transferLockedFunds(state.minerStakingFee.add(1))).to.be.revertedWith("Not enough balance") 
+    await expect(
+      contract
+        .connect(miner1)
+        .transferLockedFunds(state.minerStakingFee.add(1)),
+    ).to.be.revertedWith("Not enough balance")
   })
 
   it("extends release date by a month, on each vote disagreement with majority", async function () {
-    await contract.connect(miner1).settleMiner(2, 10);
+    await contract.connect(miner1).settleMiner(2, 10)
 
-    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(state.minerStakingFee.mul(2));
+    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(
+      state.minerStakingFee.mul(2),
+    )
 
-    expect((await contract.LockedFunds(miner1.address)).totalInstances).to.equal(2)
+    expect(
+      (await contract.LockedFunds(miner1.address)).totalInstances,
+    ).to.equal(2)
 
     const currently = (await ethers.provider.getBlock("latest")).timestamp
 
-    expect((await contract.LockedFunds(miner1.address)).lastPushDate).to.be.closeTo(BigNumber.from(currently), BigNumber.from(5));
+    expect(
+      (await contract.LockedFunds(miner1.address)).lastPushDate,
+    ).to.be.closeTo(BigNumber.from(currently), BigNumber.from(5))
 
-
-    expect((await contract.LockedFunds(miner1.address)).releaseDate.sub(currently)).to.be.closeTo(BigNumber.from(5184000), BigNumber.from(5));
+    expect(
+      (await contract.LockedFunds(miner1.address)).releaseDate.sub(currently),
+    ).to.be.closeTo(BigNumber.from(5184000), BigNumber.from(5))
 
     await ethers.provider.send("evm_increaseTime", [2592000])
 
-    await expect(contract.connect(miner1).transferLockedFunds(state.minerStakingFee)).to.be.revertedWith("Assets still frozen")
+    await expect(
+      contract.connect(miner1).transferLockedFunds(state.minerStakingFee),
+    ).to.be.revertedWith("Assets still frozen")
 
     await ethers.provider.send("evm_increaseTime", [2592000])
 
     await contract.connect(miner1).transferLockedFunds(state.minerStakingFee)
 
-    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(state.minerStakingFee);
+    expect((await contract.LockedFunds(miner1.address)).amount).to.equal(
+      state.minerStakingFee,
+    )
   })
-
-
-});
+})
