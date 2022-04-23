@@ -11,7 +11,7 @@ contract MinerNFT is ERC721Enumerable, Ownable {
   string public baseURI;
   string public baseExtension = ".json";
   uint256 public cost;
-  uint256 public maxSupply = 1200;
+  uint256 public immutable maxSupply = 1200;
   mapping(address => bool) public whitelisted;
 
   constructor(
