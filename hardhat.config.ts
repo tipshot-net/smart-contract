@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
     path: "./docs",
     clear: true,
     runOnCompile: true,
-    only: ["contracts/Predictsea.sol", "contracts/PredictNFT.sol"],
+    only: ["contracts/Tipshot.sol", "contracts/MinerNFT.sol"],
   },
   networks: {
     ropsten: {

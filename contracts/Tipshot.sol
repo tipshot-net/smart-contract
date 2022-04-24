@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 contract Tipshot is Ownable, IERC721Receiver {
   using Counters for Counters.Counter;
 
-  
   // ========== STATE VARIABLES ========== //
   Counters.Counter private _predictionIds;
 
@@ -152,8 +151,8 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   uint8 public usedFreeQuota;
 
-/**********************************/
-/*╔═════════════════════════════╗
+  /**********************************/
+  /*╔═════════════════════════════╗
   ║           EVENTS            ║
   ╚═════════════════════════════╝*/
 
@@ -231,8 +230,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║            EVENTS           ║
     ╚═════════════════════════════╝*/
   /**********************************/
-
-
 
   /**********************************/
   /*╔═════════════════════════════╗
@@ -323,7 +320,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     _;
   }
 
-  
   /*╔═════════════════════════════╗
     ║             END             ║
     ║          MODIFIERS          ║
@@ -335,14 +331,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     owner = payable(msg.sender);
   }
 
-
-
-
   /**********************************/
   /*╔═════════════════════════════╗
     ║    INTERNAL FUNCTIONS       ║
     ╚═════════════════════════════╝*/
-
 
   function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
@@ -350,13 +342,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     return c;
   }
 
-  
   function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     require(b <= a, "SafeMath: subtraction overflow");
     return a - b;
   }
 
-  
   function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     if (a == 0) return 0;
     uint256 c = a * b;
@@ -700,22 +690,16 @@ contract Tipshot is Ownable, IERC721Receiver {
     return false;
   }
 
-
   /*╔═════════════════════════════╗
     ║             END             ║
     ║      INTERNAL FUNCTIONS     ║
     ╚═════════════════════════════╝*/
   /**********************************/
 
-
-
-
-
   /**********************************/
   /*╔═════════════════════════════╗
     ║    EXTERNAL FUNCTIONS       ║
     ╚═════════════════════════════╝*/
- 
 
   ///@dev Set all variables in one function to reduce contract size
   ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
@@ -763,7 +747,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
-  ) external payable isOpen() {
+  ) external payable isOpen {
     require(_odd > 100, "Odd must be greater than 1");
     if (msg.value < miningFee) {
       require(
@@ -830,7 +814,8 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   function requestValidation(uint256 _tokenId, string memory _key)
     external
-    payable isOpen()
+    payable
+    isOpen
   {
     if (msg.value < minerStakingFee) {
       require(
@@ -908,10 +893,9 @@ contract Tipshot is Ownable, IERC721Receiver {
   function purchasePrediction(uint256 _id, string memory _key)
     external
     payable
-    isOpen()
+    isOpen
     predictionEventNotStarted(_id)
     predictionActive(_id)
-    
   {
     if (msg.value < Predictions[_id].price) {
       require(
@@ -995,7 +979,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
 
-  function settleMiner(uint256 _id, uint256 _tokenId) external isOpen(){
+  function settleMiner(uint256 _id, uint256 _tokenId) external isOpen {
     require(
       Predictions[_id].state == State.Active ||
         Predictions[_id].state == State.Concluded,
@@ -1043,7 +1027,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerSettled(msg.sender, _id, _tokenId, _minerEarnings, _refunded);
   }
 
-  function refundBuyer(uint256 _id) external isOpen(){
+  function refundBuyer(uint256 _id) external isOpen {
     require(
       Predictions[_id].state == State.Concluded,
       "Prediction not concluded"
@@ -1062,7 +1046,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
   }
 
-  function settleSeller(uint256 _id) external isOpen() onlySeller(_id) {
+  function settleSeller(uint256 _id) external isOpen onlySeller(_id) {
     require(
       Predictions[_id].state == State.Concluded,
       "Prediction not concluded"
@@ -1090,7 +1074,7 @@ contract Tipshot is Ownable, IERC721Receiver {
   ///@dev Withdraw funds from the contract
   ///@param _amount Amount to be withdrawn
 
-  function withdrawFunds(uint256 _amount) external isOpen() {
+  function withdrawFunds(uint256 _amount) external isOpen {
     require(Balances[msg.sender] >= _amount, "Not enough balance");
     Balances[msg.sender] -= _amount;
     // attempt to send the funds to the recipient
@@ -1106,7 +1090,7 @@ contract Tipshot is Ownable, IERC721Receiver {
   ///@dev Withdraw locked funds to contract balance.
   ///@param _amount Amount to be withdrawn
 
-  function transferLockedFunds(uint256 _amount) external isOpen() {
+  function transferLockedFunds(uint256 _amount) external isOpen {
     require(LockedFunds[msg.sender].amount >= _amount, "Not enough balance");
     require(
       block.timestamp > LockedFunds[msg.sender].releaseDate,
@@ -1145,8 +1129,6 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║      EXTERNAL FUNCTIONS     ║
     ╚═════════════════════════════╝*/
   /**********************************/
-
-
 
   function getMiningPoolLength() public view returns (uint256 length) {
     return miningPool.length;

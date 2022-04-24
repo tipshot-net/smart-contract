@@ -78,19 +78,21 @@ describe("Create prediction", async function () {
       const latestBlock = await ethers.provider.getBlock("latest")
       const _startTime = latestBlock.timestamp + 43200
       const _endTime = _startTime + 86400
-      await expect(contract
-        .connect(user1)
-        .createPrediction(
-          "hellothere123",
-          "hithere123",
-          _startTime,
-          _endTime,
-          200,
-          ethers.utils.parseEther("10.0"),
-          {
-            value: state.miningFee,
-          },
-        )).to.be.revertedWith("Contract in locked state")
+      await expect(
+        contract
+          .connect(user1)
+          .createPrediction(
+            "hellothere123",
+            "hithere123",
+            _startTime,
+            _endTime,
+            200,
+            ethers.utils.parseEther("10.0"),
+            {
+              value: state.miningFee,
+            },
+          ),
+      ).to.be.revertedWith("Contract in locked state")
     })
 
     //time considerations

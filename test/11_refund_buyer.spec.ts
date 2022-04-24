@@ -271,6 +271,8 @@ describe("Refund buyer", async function () {
 
     await ethers.provider.send("evm_increaseTime", [18000])
 
-    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith("Contract in locked state")
+    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith(
+      "Contract in locked state",
+    )
   })
 })

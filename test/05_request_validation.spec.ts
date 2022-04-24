@@ -130,13 +130,15 @@ describe("Request validation", async function () {
   it("reverts if contract is locked", async function () {
     await contract.connect(contractOwner).lock()
     await ethers.provider.send("evm_increaseTime", [14400])
-    await expect(contract.connect(miner1).requestValidation(
-      1, //tokenId
-      "miner1_key", //key
-      {
-        value: state.minerStakingFee,
-      },
-    )).to.be.revertedWith("Contract in locked state")
+    await expect(
+      contract.connect(miner1).requestValidation(
+        1, //tokenId
+        "miner1_key", //key
+        {
+          value: state.minerStakingFee,
+        },
+      ),
+    ).to.be.revertedWith("Contract in locked state")
   })
 
   it("reverts if eth sent less than miner staking fee", async function () {

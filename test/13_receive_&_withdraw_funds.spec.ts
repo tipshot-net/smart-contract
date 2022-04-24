@@ -93,6 +93,8 @@ describe("Recieve & withdraw funds", async function () {
       value: ethers.utils.parseEther("5.0"),
     }
     await user1.sendTransaction(payload)
-    await expect(contract.connect(user1).withdrawFunds(ethers.utils.parseEther("5.0"))).to.be.revertedWith("Contract in locked state")
+    await expect(
+      contract.connect(user1).withdrawFunds(ethers.utils.parseEther("5.0")),
+    ).to.be.revertedWith("Contract in locked state")
   })
 })

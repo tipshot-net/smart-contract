@@ -351,10 +351,10 @@ describe("Settle miner", async function () {
 
     await contract.connect(miner5).submitClosingVote(1, 5, 2)
 
-    
-
     await ethers.provider.send("evm_increaseTime", [18000])
-    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith("Contract in locked state")
+    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith(
+      "Contract in locked state",
+    )
   })
 
   it("settles miner's accordingly when prediction lost", async function () {
