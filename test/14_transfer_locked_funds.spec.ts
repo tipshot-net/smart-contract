@@ -362,6 +362,12 @@ describe("Transfer locked funds", async function () {
     expect((await contract.LockedFunds(miner1.address)).amount).to.equal(0)
   })
 
+  it("reverts if contract is locked", async function () {
+    await contract.connect(contractOwner).lock()
+    await ethers.provider.send("evm_increaseTime", [2592000])
+    await expect(contract.connect(miner1).transferLockedFunds(state.minerStakingFee)).to.be.revertedWith("Contract in locked state")
+  })
+
   it("reverts if amount to be transfered greater than locked amount", async function () {
     await ethers.provider.send("evm_increaseTime", [2592000])
 

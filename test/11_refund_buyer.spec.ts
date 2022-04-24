@@ -255,4 +255,22 @@ describe("Refund buyer", async function () {
       "Already refunded",
     )
   })
+
+  it("reverts if contract is locked", async function () {
+    await contract.connect(contractOwner).lock()
+
+    await contract.connect(miner1).submitClosingVote(1, 1, 2)
+
+    await contract.connect(miner2).submitClosingVote(1, 2, 2)
+
+    await contract.connect(miner3).submitClosingVote(1, 3, 2)
+
+    await contract.connect(miner4).submitClosingVote(1, 4, 2)
+
+    await contract.connect(miner5).submitClosingVote(1, 5, 2)
+
+    await ethers.provider.send("evm_increaseTime", [18000])
+
+    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith("Contract in locked state")
+  })
 })

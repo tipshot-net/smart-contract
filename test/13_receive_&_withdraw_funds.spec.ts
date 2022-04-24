@@ -85,4 +85,14 @@ describe("Recieve & withdraw funds", async function () {
       contract.connect(user1).withdrawFunds(ethers.utils.parseEther("5.1")),
     ).to.be.revertedWith("Not enough balance")
   })
+
+  it("reverts if contract is locked", async function () {
+    await contract.connect(contractOwner).lock()
+    let payload = {
+      to: contract.address,
+      value: ethers.utils.parseEther("5.0"),
+    }
+    await user1.sendTransaction(payload)
+    await expect(contract.connect(user1).withdrawFunds(ethers.utils.parseEther("5.0"))).to.be.revertedWith("Contract in locked state")
+  })
 })

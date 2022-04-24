@@ -11,11 +11,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 contract Tipshot is Ownable, IERC721Receiver {
   using Counters for Counters.Counter;
 
+  
+  // ========== STATE VARIABLES ========== //
   Counters.Counter private _predictionIds;
 
   uint256 private pointer;
-
-  // ========== STATE VARIABLES ========== //
 
   ///@notice maps the generated id to the prediction data
   mapping(uint256 => PredictionData) public Predictions;
@@ -152,9 +152,10 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   uint8 public usedFreeQuota;
 
-  /*╔═════════════════════════════╗
-    ║           EVENTS            ║
-    ╚═════════════════════════════╝*/
+/**********************************/
+/*╔═════════════════════════════╗
+  ║           EVENTS            ║
+  ╚═════════════════════════════╝*/
 
   event VariableUpdated(
     uint256 miningFee,
@@ -229,6 +230,9 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║             END             ║
     ║            EVENTS           ║
     ╚═════════════════════════════╝*/
+  /**********************************/
+
+
 
   /**********************************/
   /*╔═════════════════════════════╗
@@ -319,7 +323,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     _;
   }
 
-  /**********************************/
+  
   /*╔═════════════════════════════╗
     ║             END             ║
     ║          MODIFIERS          ║
@@ -331,7 +335,56 @@ contract Tipshot is Ownable, IERC721Receiver {
     owner = payable(msg.sender);
   }
 
-  //internal functions
+
+
+
+  /**********************************/
+  /*╔═════════════════════════════╗
+    ║    INTERNAL FUNCTIONS       ║
+    ╚═════════════════════════════╝*/
+
+
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a, "SafeMath: addition overflow");
+    return c;
+  }
+
+  
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    require(b <= a, "SafeMath: subtraction overflow");
+    return a - b;
+  }
+
+  
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) return 0;
+    uint256 c = a * b;
+    require(c / a == b, "SafeMath:multiplication overflow");
+    return c;
+  }
+
+  ///@dev checks if prediction data meets requirements
+  /// @param _startTime Timestamp of the kickoff time of the first prediction event
+  /// @param _endTime Timestamp of the proposed end of the last prediction event
+  ///@return bool
+
+  function _isValidTiming(uint256 _startTime, uint256 _endTime)
+    internal
+    view
+    returns (bool)
+  {
+    require(_endTime > _startTime, "End time less than start time");
+    if (
+      add(block.timestamp, mul(8, HOURS)) > _startTime ||
+      _startTime > add(block.timestamp, mul(24, HOURS)) ||
+      sub(_endTime, _startTime) > mul(24, HOURS)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
 
   function purchasedPredictionsCleanup() internal {
     if (BoughtPredictions[msg.sender].length == 0) {
@@ -404,8 +457,8 @@ contract Tipshot is Ownable, IERC721Receiver {
   }
 
   /*╔══════════════════════════════╗
-     ║  TRANSFER NFT TO CONTRACT    ║
-     ╚══════════════════════════════╝*/
+    ║  TRANSFER NFT TO CONTRACT    ║
+    ╚══════════════════════════════╝*/
 
   function _transferNftToContract(uint256 _tokenId)
     internal
@@ -647,6 +700,23 @@ contract Tipshot is Ownable, IERC721Receiver {
     return false;
   }
 
+
+  /*╔═════════════════════════════╗
+    ║             END             ║
+    ║      INTERNAL FUNCTIONS     ║
+    ╚═════════════════════════════╝*/
+  /**********************************/
+
+
+
+
+
+  /**********************************/
+  /*╔═════════════════════════════╗
+    ║    EXTERNAL FUNCTIONS       ║
+    ╚═════════════════════════════╝*/
+ 
+
   ///@dev Set all variables in one function to reduce contract size
   ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
   ///@param _minerStakingFee Miner staking fee in wei
@@ -693,7 +763,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     uint256 _endTime,
     uint16 _odd,
     uint256 _price
-  ) external payable {
+  ) external payable isOpen() {
     require(_odd > 100, "Odd must be greater than 1");
     if (msg.value < miningFee) {
       require(
@@ -760,7 +830,7 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   function requestValidation(uint256 _tokenId, string memory _key)
     external
-    payable
+    payable isOpen()
   {
     if (msg.value < minerStakingFee) {
       require(
@@ -838,8 +908,10 @@ contract Tipshot is Ownable, IERC721Receiver {
   function purchasePrediction(uint256 _id, string memory _key)
     external
     payable
+    isOpen()
     predictionEventNotStarted(_id)
     predictionActive(_id)
+    
   {
     if (msg.value < Predictions[_id].price) {
       require(
@@ -923,7 +995,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
 
-  function settleMiner(uint256 _id, uint256 _tokenId) external {
+  function settleMiner(uint256 _id, uint256 _tokenId) external isOpen(){
     require(
       Predictions[_id].state == State.Active ||
         Predictions[_id].state == State.Concluded,
@@ -971,7 +1043,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerSettled(msg.sender, _id, _tokenId, _minerEarnings, _refunded);
   }
 
-  function refundBuyer(uint256 _id) external {
+  function refundBuyer(uint256 _id) external isOpen(){
     require(
       Predictions[_id].state == State.Concluded,
       "Prediction not concluded"
@@ -990,7 +1062,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
   }
 
-  function settleSeller(uint256 _id) external onlySeller(_id) {
+  function settleSeller(uint256 _id) external isOpen() onlySeller(_id) {
     require(
       Predictions[_id].state == State.Concluded,
       "Prediction not concluded"
@@ -1018,7 +1090,7 @@ contract Tipshot is Ownable, IERC721Receiver {
   ///@dev Withdraw funds from the contract
   ///@param _amount Amount to be withdrawn
 
-  function withdrawFunds(uint256 _amount) external isOpen {
+  function withdrawFunds(uint256 _amount) external isOpen() {
     require(Balances[msg.sender] >= _amount, "Not enough balance");
     Balances[msg.sender] -= _amount;
     // attempt to send the funds to the recipient
@@ -1034,7 +1106,7 @@ contract Tipshot is Ownable, IERC721Receiver {
   ///@dev Withdraw locked funds to contract balance.
   ///@param _amount Amount to be withdrawn
 
-  function transferLockedFunds(uint256 _amount) external {
+  function transferLockedFunds(uint256 _amount) external isOpen() {
     require(LockedFunds[msg.sender].amount >= _amount, "Not enough balance");
     require(
       block.timestamp > LockedFunds[msg.sender].releaseDate,
@@ -1068,65 +1140,13 @@ contract Tipshot is Ownable, IERC721Receiver {
     Balances[msg.sender] += msg.value;
   }
 
-  function add(uint256 a, uint256 b) internal pure returns (uint256) {
-    uint256 c = a + b;
-    require(c >= a, "SafeMath: addition overflow");
-    return c;
-  }
+  /*╔═════════════════════════════╗
+    ║             END             ║
+    ║      EXTERNAL FUNCTIONS     ║
+    ╚═════════════════════════════╝*/
+  /**********************************/
 
-  /**
-   * @dev Returns the subtraction of two unsigned integers, reverting on
-   * overflow (when the result is negative).
-   *
-   * Counterpart to Solidity's `-` operator.
-   *
-   * Requirements:
-   *
-   * - Subtraction cannot overflow.
-   */
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    require(b <= a, "SafeMath: subtraction overflow");
-    return a - b;
-  }
 
-  /**
-   * @dev Returns the multiplication of two unsigned integers, reverting on
-   * overflow.
-   *
-   * Counterpart to Solidity's `*` operator.
-   *
-   * Requirements:
-   *
-   * - Multiplication cannot overflow.
-   */
-  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-    if (a == 0) return 0;
-    uint256 c = a * b;
-    require(c / a == b, "SafeMath:multiplication overflow");
-    return c;
-  }
-
-  ///@dev checks if prediction data meets requirements
-  /// @param _startTime Timestamp of the kickoff time of the first prediction event
-  /// @param _endTime Timestamp of the proposed end of the last prediction event
-  ///@return bool
-
-  function _isValidTiming(uint256 _startTime, uint256 _endTime)
-    internal
-    view
-    returns (bool)
-  {
-    require(_endTime > _startTime, "End time less than start time");
-    if (
-      add(block.timestamp, mul(8, HOURS)) > _startTime ||
-      _startTime > add(block.timestamp, mul(24, HOURS)) ||
-      sub(_endTime, _startTime) > mul(24, HOURS)
-    ) {
-      return false;
-    }
-
-    return true;
-  }
 
   function getMiningPoolLength() public view returns (uint256 length) {
     return miningPool.length;

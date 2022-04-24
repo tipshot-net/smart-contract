@@ -337,6 +337,26 @@ describe("Settle miner", async function () {
     )
   })
 
+  it("reverts if contract is locked", async function () {
+    await contract.connect(contractOwner).lock()
+    await ethers.provider.send("evm_increaseTime", [136000])
+
+    await contract.connect(miner1).submitClosingVote(1, 1, 1)
+
+    await contract.connect(miner2).submitClosingVote(1, 2, 1)
+
+    await contract.connect(miner3).submitClosingVote(1, 3, 1)
+
+    await contract.connect(miner4).submitClosingVote(1, 4, 2)
+
+    await contract.connect(miner5).submitClosingVote(1, 5, 2)
+
+    
+
+    await ethers.provider.send("evm_increaseTime", [18000])
+    await expect(contract.connect(miner1).settleMiner(1, 1)).to.be.revertedWith("Contract in locked state")
+  })
+
   it("settles miner's accordingly when prediction lost", async function () {
     await ethers.provider.send("evm_increaseTime", [136000])
 

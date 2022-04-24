@@ -131,6 +131,13 @@ describe("Purchase prediction", async function () {
     expect(await contract.BoughtPredictions(buyer1.address, 0)).to.equal(1)
   })
 
+  it("reverts if contract is locked", async function () {
+    await contract.connect(contractOwner).lock()
+    await expect(contract.connect(buyer1).purchasePrediction(1, "mykey", {
+      value: ethers.utils.parseEther("10.0"),
+    })).to.be.revertedWith("Contract in locked state")
+  })
+
   it("reverts if prediction event already started", async function () {
     await ethers.provider.send("evm_increaseTime", [28900])
     await expect(
