@@ -1,30 +1,29 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat"
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+  const [deployer] = await ethers.getSigners();
 
-  // We get the contract to deploy
-  const Contract = await ethers.getContractFactory("Tipshot")
-  // const code = await Contract.deploy("...........")
+  console.log("Deploying contracts with the account:", deployer.address);
 
-  // await code.deployed()
+  console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  // console.log("Greeter deployed to:", code.address)
+  const Tipshot = await ethers.getContractFactory("Tipshot");
+  const MinerNFT = await ethers.getContractFactory("MinerNFT");
+  
+  const tipshot = await Tipshot.deploy();
+  const minerNFT = await MinerNFT.deploy("", "", "");
+
+
+  //verify: npx hardhat verify --network mumbai DEPLOYED_CONTRACT_ADDRESS
+  console.log("Tipshot address:", tipshot.address);
+  //verify: npx hardhat verify --network mumbai --constructor-args minerNFTArgs.ts DEPLOYED_CONTRACT_ADDRESS
+  console.log("Miners Token address:", minerNFT.address);
+
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error)
-  process.exitCode = 1
-})
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
