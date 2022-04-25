@@ -76,11 +76,11 @@ To verify the auction contract run:
 $ yarn verify-auction [AUCTION-CONTRACT-ADDRESS]
 ```
 
-A verified version of the Tipshot contract on the polygon mumbai test network is available at address
-https://rinkeby.etherscan.io/address/0x0000000000000000000000000000000000000000#code
+A verified version of the Tipshot contract on the polygon mumbai test network is available at address:
 0x0000000000000000000000000000000000000000
+https://rinkeby.etherscan.io/address/0x0000000000000000000000000000000000000000#code
 
-A verified version of the Miner NFT contract on the polygon mumbai test network is available at address 0x0000000000000000000000000000000000000000
+A verified version of the Miner NFT contract on the polygon mumbai test network is available at address: 0x0000000000000000000000000000000000000000
 https://rinkeby.etherscan.io/address/0x0000000000000000000000000000000000000000#code
 
 ## Discussion
