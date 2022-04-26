@@ -6,7 +6,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-/// @title Tipshot {Blockchain powered sport prediction marketplace}
+/**
+ * @title Tipshot {Blockchain powered sport prediction marketplace}.
+ */
 
 contract Tipshot is Ownable, IERC721Receiver {
   using Counters for Counters.Counter;
@@ -153,8 +155,8 @@ contract Tipshot is Ownable, IERC721Receiver {
 
   /**********************************/
   /*╔═════════════════════════════╗
-  ║           EVENTS            ║
-  ╚═════════════════════════════╝*/
+    ║           EVENTS            ║
+    ╚═════════════════════════════╝*/
 
   event VariableUpdated(
     uint256 miningFee,
@@ -336,17 +338,30 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║    INTERNAL FUNCTIONS       ║
     ╚═════════════════════════════╝*/
 
+  /**
+   * @dev Returns the addition of two unsigned integers, reverting on
+   * overflow.
+   */
+
   function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
     require(c >= a, "SafeMath: addition overflow");
     return c;
   }
 
+  /**
+   * @dev Returns the subtraction of two unsigned integers, reverting on
+   * overflow.
+   */
   function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     require(b <= a, "SafeMath: subtraction overflow");
     return a - b;
   }
 
+  /**
+   * @dev Returns the multiplication of two unsigned integers, reverting on
+   * overflow.
+   */
   function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     if (a == 0) return 0;
     uint256 c = a * b;
@@ -354,10 +369,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     return c;
   }
 
-  ///@dev checks if prediction data meets requirements
-  /// @param _startTime Timestamp of the kickoff time of the first prediction event
-  /// @param _endTime Timestamp of the proposed end of the last prediction event
-  ///@return bool
+  /**
+   * @notice Checks if prediction data meets requirements.
+   * @param _startTime Timestamp of the kickoff time of the first prediction event.
+   * @param _endTime Timestamp of the proposed end of the last prediction event.
+   * @return bool
+   */
 
   function _isValidTiming(uint256 _startTime, uint256 _endTime)
     internal
@@ -375,6 +392,10 @@ contract Tipshot is Ownable, IERC721Receiver {
 
     return true;
   }
+
+  /**
+   * @notice removes all user's concluded & settled bought predictions.
+   */
 
   function purchasedPredictionsCleanup() internal {
     if (BoughtPredictions[msg.sender].length == 0) {
@@ -399,6 +420,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     BoughtPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
   }
+
+  /**
+   * @notice Incrementally assigns a tip to a miner for validation
+   * @param _tokenId Miner's NFT id.
+   * @param _key purchase key (for verification).
+   */
 
   function _assignPredictionToMiner(uint256 _tokenId, string memory _key)
     internal
@@ -435,8 +462,13 @@ contract Tipshot is Ownable, IERC721Receiver {
     return _id;
   }
 
-  function next(uint256 point) internal view returns (uint256) {
-    uint256 x = point + 1;
+  /**
+   * @notice Moves the pointer to the next item on in the mining pool.
+   * @param _point Current index of the pointer.
+   */
+
+  function next(uint256 _point) internal view returns (uint256) {
+    uint256 x = _point + 1;
     while (x < miningPool.length) {
       if (miningPool[x] != 0) {
         break;
@@ -497,11 +529,20 @@ contract Tipshot is Ownable, IERC721Receiver {
     TokenOwner[_tokenId] = address(0);
   }
 
+  /**
+   * @notice Adds prediction to list of currently active tips.
+   * @param  _id Prediction ID.
+   */
+
   function addToActivePool(uint256 _id) internal {
     activePool.push(_id);
     Index[_id] = activePool.length - 1;
   }
 
+  /**
+   * @notice Adds prediction to the list of tipster's recent tips.
+   * @param  _id Prediction ID.
+   */
   function addToRecentPredictionsList(address tipster, uint256 _id) internal {
     if (User[tipster].spot == 10) {
       User[tipster].spot = 0;
@@ -511,6 +552,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     User[tipster].spot += 1;
   }
 
+  /**
+   * @notice Removes prediction from list of currently active tips.
+   * @param  _id Prediction ID.
+   */
+
   function removeFromActivePool(uint256 _id) internal {
     uint256 _index = Index[_id];
     activePool[_index] = activePool[activePool.length - 1];
@@ -518,9 +564,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     activePool.pop();
   }
 
-  ///@dev Calculate majority opening vote
-  ///@param _id Prediction ID
-  ///@return status -> majority opening consensus
+  /**
+   * @notice Calculate majority opening vote.
+   * @param  _id Prediction ID.
+   * @return status -> majority opening consensus.
+   */
 
   function _getWinningOpeningVote(uint256 _id)
     internal
@@ -534,9 +582,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     }
   }
 
-  ///@dev Calculate majority closing vote
-  ///@param _id Prediction ID
-  ///@return status -> majority closing consensus
+  /**
+   * @notice Calculate majority closing vote.
+   * @param  _id Prediction ID.
+   * @return status -> majority closing consensus (tip outcome).
+   */
 
   function _getWinningClosingVote(uint256 _id)
     internal
@@ -551,6 +601,13 @@ contract Tipshot is Ownable, IERC721Receiver {
       return ValidationStatus.Negative;
     }
   }
+
+  /**
+   * @notice Makes decision to either lock miner's staking fee or refund to wallet.
+   * @param  _id Prediction ID.
+   * @param  _tokenId Miner's token id.
+   * @return bool -> if refunded(true), if locked(false).
+   */
 
   function _refundMinerStakingFee(uint256 _id, uint256 _tokenId)
     internal
@@ -571,6 +628,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     return refund;
   }
 
+  /**
+   * @notice Locks user's funds for a month and extends release date by another month for each subsequent lock instance.
+   * @param  _user Address of user.
+   * @param  _amount Amount to be locked.
+   */
+
   function lockFunds(address _user, uint256 _amount)
     internal
     notZeroAddress(_user)
@@ -588,6 +651,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     LockedFunds[_user].lastPushDate = block.timestamp;
     LockedFunds[_user].totalInstances += 1;
   }
+
+  /**
+   * @notice Removes concluded & settled transactions from miner's validations list.
+   */
 
   function ownedValidationsCleanup() internal {
     if (OwnedValidations[msg.sender].length == 0) {
@@ -607,6 +674,17 @@ contract Tipshot is Ownable, IERC721Receiver {
     OwnedValidations[msg.sender] = dummyValidations[msg.sender];
     delete dummyValidations[msg.sender];
   }
+
+  /**
+   * @notice Creates new prediction, added to the mining pool.
+   * @param _id generated id.
+   * @param _ipfsHash ipfs hash containing the encrypted prediction data.
+   * @param _key prediction data encryption key (encrypted).
+   * @param _startTime expected start time of the first game in the predictions.
+   * @param _endTime expected end time of the last game in the predictions.
+   * @param _odd total accumulated odd.
+   * @param _price selling price.
+   */
 
   function _setupPrediction(
     uint256 _id,
@@ -636,6 +714,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     }
   }
 
+  /**
+   * @notice Removes concluded & settled transactions from tipster's sold predictions list.
+   */
+
   function ownedPredictionsCleanup() internal {
     if (OwnedPredictions[msg.sender].length == 0) {
       return;
@@ -664,6 +746,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     OwnedPredictions[msg.sender] = dummyList[msg.sender];
     delete dummyList[msg.sender];
   }
+
+  /**
+   * @notice Middleware function, checks if tipster can publish a paid tip.
+   * @param _tipster Address of tipster
+   */
 
   function canChargeFee(address _tipster)
     internal
@@ -701,10 +788,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║    EXTERNAL FUNCTIONS       ║
     ╚═════════════════════════════╝*/
 
-  ///@dev Set all variables in one function to reduce contract size
-  ///@param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners)
-  ///@param _minerStakingFee Miner staking fee in wei
-  ///@param _minerPercentage Percentage of the total_prediction_earnings each miner receives in event of winning (Value between 0 - 100)
+  /**
+   * @notice Set all contract's config variables .
+   * @param _miningFee miner staking fee in wei (paid by prediction seller, distributed among miners).
+   * @param _minerStakingFee Miner staking fee in wei.
+   * @param _minerPercentage Percentage of the total_prediction_earnings each miner receives in event of winning (Value between 0 - 100)
+   */
 
   function setVariables(
     uint256 _miningFee,
@@ -717,8 +806,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit VariableUpdated(miningFee, minerStakingFee, minerPercentage);
   }
 
-  ///@dev Allows owner to set NFT address
-  ///@param _NftAddress Deployed NFT contract address
+  /**
+   * @notice Set Miner NFT contract address.
+   * @param _NftAddress Deployed NFT contract address.
+   */
 
   function setNftAddress(address _NftAddress)
     external
@@ -728,17 +819,24 @@ contract Tipshot is Ownable, IERC721Receiver {
     NFT_CONTRACT_ADDRESS = _NftAddress;
   }
 
+  /**
+   * @notice Sets maximum number free tips that can exist in the active pool at any given time.
+   * @param _quota amount.
+   */
+
   function setFreeTipsQuota(uint8 _quota) external onlyOwner {
     freeTipsQuota = _quota;
   }
 
-  ///@dev creates new prediction added to the mining pool
-  ///@param _ipfsHash ipfs Url hash containing the encrypted prediction data
-  ///@param _key prediction data encryption key (encrypted)
-  ///@param _startTime expected start time of the first game in the predictions
-  ///@param _endTime expected end time of the last game in the predictions
-  ///@param _odd total accumulated odd
-  ///@param _price selling price
+  /**
+   * @notice Creates new prediction, added to the mining pool.
+   * @param _ipfsHash ipfs hash containing the encrypted prediction data.
+   * @param _key prediction data encryption key (encrypted).
+   * @param _startTime expected start time of the first game in the predictions.
+   * @param _endTime expected end time of the last game in the predictions.
+   * @param _odd total accumulated odd
+   * @param _price selling price
+   */
 
   function createPrediction(
     string memory _ipfsHash,
@@ -775,8 +873,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit PredictionCreated(msg.sender, _id, _ipfsHash, _key);
   }
 
-  ///@notice Seller can withdraw prediction only before any miner has mined it.
-  ///@param _id prediction Id
+  /**
+   * @notice Tipster can withdraw prediction only before any miner has mined it (staking fee refunded).
+   * @param _id prediction Id
+   */
 
   function withdrawPrediction(uint256 _id)
     external
@@ -793,7 +893,17 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit PredictionWithdrawn(_id, msg.sender);
   }
 
-  ///@notice Prediction info can only be updated only before any miner has mined it.
+  /**
+   * @notice Creates new prediction, added to the mining pool.
+   * @param _id prediction id
+   * @param _ipfsHash ipfs hash containing the encrypted prediction data.
+   * @param _key prediction data encryption key (encrypted).
+   * @param _startTime expected start time of the first game in the predictions.
+   * @param _endTime expected end time of the last game in the predictions.
+   * @param _odd total accumulated odd
+   * @param _price selling price
+   */
+
   function updatePrediction(
     uint256 _id,
     string memory _ipfsHash,
@@ -808,9 +918,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit PredictionUpdated(msg.sender, _id, _ipfsHash, _key);
   }
 
-  ///@dev miner can place validation request and pay staking fee by sending it in the transaction
-  ///@param _tokenId NFT token Id
-  ///@param _key encrypted purchase key
+  /**
+   * @notice miner can place validation request and pay staking fee by sending it in the transaction
+   * @param _tokenId NFT token Id
+   * @param _key encrypted purchase key
+   */
 
   function requestValidation(uint256 _tokenId, string memory _key)
     external
@@ -837,10 +949,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit ValidationAssigned(msg.sender, _id, _tokenId);
   }
 
-  ///@dev miner submits opening validation decision on seller's prediction
-  ///@param _id Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _option Miner's validation decision
+  /**
+   * @notice miner submits opening validation decision on an assigned prediction
+   * @param _id Prediction ID
+   * @param _tokenId Miner's NFT token Id
+   * @param _option Miner's tip validation vote
+   */
 
   function submitOpeningVote(
     uint256 _id,
@@ -886,9 +1000,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit OpeningVoteSubmitted(_id, _tokenId, _option, Predictions[_id].state);
   }
 
-  ///@dev Users can purchase prediction by sending purchase fee in the transaction
-  ///@param _id prediction ID
-  ///@param _key encrypted key of purchaser
+  /**
+   * @notice Users can purchase prediction by sending purchase fee in the transaction
+   * @param _id Prediction ID
+   * @param _key encrypted key of purchaser
+   */
 
   function purchasePrediction(uint256 _id, string memory _key)
     external
@@ -917,10 +1033,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit PredictionPurchased(msg.sender, _id);
   }
 
-  ///@dev miner submits closing validation decision on seller's prediction.
-  ///@param _id Prediction ID
-  ///@param _tokenId Miner's NFT token Id
-  ///@param _option Miner's validation decision
+  /**
+   * @notice miner submits closing validation decision (outcome) on seller's prediction.
+   * @param _id Prediction ID
+   * @param _tokenId Miner's NFT token Id
+   * @param _option Miner's prediction outcome vote
+   */
 
   function submitClosingVote(
     uint256 _id,
@@ -960,6 +1078,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit ClosingVoteSubmitted(_id, _tokenId, _option);
   }
 
+  /**
+   * @notice In the event that a tip was rejected, all participating miners can withdraw thier NFT & staking fee.
+   * @param _id Prediction ID
+   * @param _tokenId Miner's NFT token Id
+   */
+
   function withdrawMinerNftandStakingFee(uint256 _id, uint256 _tokenId)
     external
     assignedToMiner(_id, _tokenId)
@@ -979,6 +1103,12 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerNFTAndStakingFeeWithdrawn(msg.sender, _id, _tokenId);
   }
 
+  /**
+   * @notice At the end of the closing vote window period, transaction conclustion & miners settlement takes place.
+   * @param _id Prediction ID
+   * @param _tokenId Miner's NFT token Id
+   */
+
   function settleMiner(uint256 _id, uint256 _tokenId) external isOpen {
     require(
       Predictions[_id].state == State.Active ||
@@ -996,7 +1126,7 @@ contract Tipshot is Ownable, IERC721Receiver {
     );
     if (Predictions[_id].state == State.Active) {
       Predictions[_id].state = State.Concluded;
-      if (Predictions[_id].price == 0) {
+      if (Predictions[_id].price == 0 && usedFreeQuota != 0) {
         usedFreeQuota -= 1;
       }
       Predictions[_id].winningOpeningVote = _getWinningOpeningVote(_id);
@@ -1027,6 +1157,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit MinerSettled(msg.sender, _id, _tokenId, _minerEarnings, _refunded);
   }
 
+  /**
+   * @notice Tips purchase is refunded if the tips lost.
+   * @param _id Prediction ID
+   */
+
   function refundBuyer(uint256 _id) external isOpen {
     require(
       Predictions[_id].state == State.Concluded,
@@ -1045,6 +1180,11 @@ contract Tipshot is Ownable, IERC721Receiver {
     Purchases[msg.sender][_id].refunded = true;
     emit BuyerRefunded(msg.sender, _id, Predictions[_id].price);
   }
+
+  /**
+   * @notice Tipster is settled is tips Won.
+   * @param _id Prediction ID
+   */
 
   function settleSeller(uint256 _id) external isOpen onlySeller(_id) {
     require(
@@ -1071,8 +1211,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit SellerSettled(msg.sender, _id, _sellerEarnings);
   }
 
-  ///@dev Withdraw funds from the contract
-  ///@param _amount Amount to be withdrawn
+  /**
+   * @notice Withdraw funds from the contract.
+   * @param _amount Amount to be withdrawn.
+   */
 
   function withdrawFunds(uint256 _amount) external isOpen {
     require(Balances[msg.sender] >= _amount, "Not enough balance");
@@ -1087,8 +1229,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     emit Withdrawal(msg.sender, _amount, Balances[msg.sender]);
   }
 
-  ///@dev Withdraw locked funds to contract balance.
-  ///@param _amount Amount to be withdrawn
+  /**
+   * @notice Withdraw locked funds to contract balance.
+   * @param _amount Amount to be withdrawn.
+   */
 
   function transferLockedFunds(uint256 _amount) external isOpen {
     require(LockedFunds[msg.sender].amount >= _amount, "Not enough balance");
@@ -1105,6 +1249,12 @@ contract Tipshot is Ownable, IERC721Receiver {
       LockedFunds[msg.sender].amount
     );
   }
+
+  /**
+   * @notice Tipster's profile information.
+   * @param _profileData ipfs hash of json data.
+   * @param _key Encrypted storage key.
+   */
 
   function addProfile(string memory _profileData, string memory _key) external {
     User[msg.sender].profile = _profileData;
@@ -1128,6 +1278,10 @@ contract Tipshot is Ownable, IERC721Receiver {
     ║             END             ║
     ║      EXTERNAL FUNCTIONS     ║
     ╚═════════════════════════════╝*/
+  /**********************************/
+
+  /**********************************
+  *   Array Accessor functions
   /**********************************/
 
   function getMiningPoolLength() public view returns (uint256 length) {

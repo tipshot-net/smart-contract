@@ -10,8 +10,7 @@ import "hardhat-docgen"
 
 dotenv.config()
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
+
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners()
 
@@ -40,14 +39,14 @@ const config: HardhatUserConfig = {
     only: ["contracts/Tipshot.sol", "contracts/MinerNFT.sol"],
   },
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
+    polygon: {
+      url: process.env.POLYGON_MAINNET_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
+    enabled: true,
     currency: "USD",
   },
   etherscan: {
