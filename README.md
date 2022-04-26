@@ -63,17 +63,17 @@ To run coverage:
 $ npx hardhat coverage
 ```
 
-To deploy to Rinkeby:
+To deploy to polygon:
 create a .env file containing the required private keys(see .env.example) then run:
 
 ```sh
-$ npx hardhat deploy-rinkeby
+$ npx hardhat deploy --network polygon
 ```
 
 To verify the auction contract run:
 
 ```sh
-$ yarn verify-auction [AUCTION-CONTRACT-ADDRESS]
+$ npx hardhat verify --network polygon DEPLOYED_CONTRACT_ADDRESS
 ```
 
 A verified version of the Tipshot contract on the polygon mainnet is available at address:
