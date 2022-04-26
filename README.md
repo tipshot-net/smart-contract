@@ -77,11 +77,11 @@ $ yarn verify-auction [AUCTION-CONTRACT-ADDRESS]
 ```
 
 A verified version of the Tipshot contract on the polygon mainnet is available at address:
-0x0000000000000000000000000000000000000000
-https://rinkeby.etherscan.io/address/0x0000000000000000000000000000000000000000#code
+0x390c9a7d14B1D7b45244131260584bEc1E405dFF
+https://polygonscan.com/address/0x390c9a7d14B1D7b45244131260584bEc1E405dFF#code
 
-A verified version of the Miner NFT contract on the polygon mainnet is available at address: 0x0000000000000000000000000000000000000000
-https://rinkeby.etherscan.io/address/0x0000000000000000000000000000000000000000#code
+A verified version of the Miner NFT contract on the polygon mainnet is available at address: 0x4da96FfC53AEAaA42228652A7e6860e09eA71502
+https://polygonscan.com/address/0x4da96FfC53AEAaA42228652A7e6860e09eA71502#code
 
 ## Discussion
 

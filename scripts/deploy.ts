@@ -1,4 +1,5 @@
 import { ethers } from "hardhat"
+import args from "../minerNFTArgs";
 
 async function main() {
   const [deployer] = await ethers.getSigners()
@@ -11,11 +12,11 @@ async function main() {
   const MinerNFT = await ethers.getContractFactory("MinerNFT")
 
   const tipshot = await Tipshot.deploy()
-  const minerNFT = await MinerNFT.deploy("", "", "")
+  const minerNFT = await MinerNFT.deploy(args._name, args._symbol, args._initBaseURI)
 
-  //verify: npx hardhat verify --network polygon-mainnet DEPLOYED_CONTRACT_ADDRESS
+  //verify: npx hardhat verify --network polygon DEPLOYED_CONTRACT_ADDRESS
   console.log("Tipshot address:", tipshot.address)
-  //verify: npx hardhat verify --network polygon-mainnet --constructor-args minerNFTArgs.ts DEPLOYED_CONTRACT_ADDRESS
+  //verify: npx hardhat verify --network polygon --constructor-args args.js DEPLOYED_CONTRACT_ADDRESS
   console.log("Miners Token address:", minerNFT.address)
 }
 

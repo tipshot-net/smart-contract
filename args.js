@@ -1,0 +1,1 @@
+module.exports = ["Tipshot_Miner_Token", "TMT", "ipfs://QmcrAuArkR3ZsSdnACtbTdNLhscWSS1owzXbbWxXUWdLxt/"];
