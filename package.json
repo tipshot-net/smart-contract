@@ -272,13 +272,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://damilolaedwards@bitbucket.org/damilolaedwards/smart-contract.git"
+    "url": "git+https://github.com/tipshot-net/smart-contract.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://bitbucket.org/damilolaedwards/smart-contract/issues"
+    "url": "https://github.com/tipshot-net/smart-contract/issues"
   },
-  "homepage": "https://bitbucket.org/damilolaedwards/smart-contract#readme"
+  "homepage": "https://tipshot.net"
 }
